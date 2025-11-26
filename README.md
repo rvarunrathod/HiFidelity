@@ -16,8 +16,6 @@ HiFidelity is a native macOS music player built for audiophiles and music enthus
 - Built-in equalizer with customizable presets
 - Advanced audio effects and DSP processing
 
-![Equalizer](docs/images/Equalizer.png)
-
 ### Comprehensive Format Support
 HiFidelity supports 35+ audio formats:
 
@@ -32,10 +30,6 @@ HiFidelity supports 35+ audio formats:
 - Embedded album artwork support
 - Custom playlists with full management capabilities
 
-![Album View](docs/images/Album-view.png)
-![Artists View](docs/images/Home-page-artists.png)
-![Tracks View](docs/images/Home-page-tracks.png)
-
 ### Intelligent Features
 - **Smart Recommendations**: Auto play functionality, you don't have to think what to play next.
 - **Lyrics Display**: Synced lyrics support with real-time highlighting
@@ -43,13 +37,6 @@ HiFidelity supports 35+ audio formats:
 - **Play Queue Management**: Full control over what plays next
 - **Playback History**: Keep track of what you've listened to
 - **Favorites**: Mark and organize your favorite tracks
-
-<div align="center">
-  <img src="docs/images/Autoplay-queue.png" alt="Autoplay Queue" height="400" style="margin: 0 10px;">
-  <img src="docs/images/Lyrics%20support.png" alt="Lyrics Support" height="400" style="margin: 0 10px;">
-</div>
-
-![Search View](docs/images/Search-view.png)
 
 ### Modern macOS Experience
 - Beautiful native SwiftUI interface
@@ -61,6 +48,35 @@ HiFidelity supports 35+ audio formats:
 - Your music stays on your Mac
 - No tracking, no analytics, no data collection
 - Secure file access with macOS sandbox permissions
+
+---
+
+## Screenshots
+
+### Library Views
+<div align="center">
+  <img src="docs/images/Album-view.png" alt="Album View" height="350" style="margin: 10px;">
+  <img src="docs/images/Home-page-artists.png" alt="Artists View" height="350" style="margin: 10px;">
+</div>
+
+<div align="center">
+  <img src="docs/images/Home-page-tracks.png" alt="Tracks View" height="350" style="margin: 10px;">
+</div>
+
+### Audio Features
+<div align="center">
+  <img src="docs/images/Equalizer.png" alt="Equalizer" height="400" style="margin: 10px;">
+</div>
+
+### Smart Features
+<div align="center">
+  <img src="docs/images/Autoplay-queue.png" alt="Autoplay Queue" height="350" style="margin: 10px;">
+  <img src="docs/images/Lyrics%20support.png" alt="Lyrics Support" height="350" style="margin: 10px;">
+</div>
+
+<div align="center">
+  <img src="docs/images/Search-view.png" alt="Search View" height="350" style="margin: 10px;">
+</div>
 
 ---
 
@@ -138,6 +154,7 @@ Contributions are welcome! Please feel free to submit issues and pull requests.
 - [**TagLib**](https://taglib.org/)
 - [**GRDB**](https://github.com/groue/GRDB.swift)
 - [**Sparkle**](https://github.com/sparkle-project/Sparkle)
+- [**Petrichor**](https://github.com/kushalpandya/Petrichora): Learned lot from that code
 
 ---
 

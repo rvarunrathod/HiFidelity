@@ -37,7 +37,7 @@ struct HiFidelityApp: App {
             // View menu with audio effects
             audioEffectsCommands()
             
-            aboutInfoCommands()
+            appMenuCommands()
         }
         .onChange(of: scenePhase) { oldPhase, newPhase in
             handleScenePhaseChange(newPhase)
@@ -116,14 +116,33 @@ struct HiFidelityApp: App {
         .defaultPosition(.center)
     }
 
+    
     @CommandsBuilder
-    private func aboutInfoCommands() -> some Commands {
+    private func appMenuCommands() -> some Commands {
+        CommandGroup(replacing: .appSettings) {}
+        
         CommandGroup(replacing: .appInfo) {
             Button("About HiFidelity") {
                 NotificationCenter.default.post(name: .openSettingsAbout, object: nil)
             }
         }
+        
+        CommandGroup(after: .appInfo) {
+            Divider()
+            checkForUpdatesMenuItem()
+        }
     }
+    
+    private func checkForUpdatesMenuItem() -> some View {
+        Button {
+            if let updater = appDelegate.updaterController?.updater {
+                updater.checkForUpdates()
+            }
+        } label: {
+            Text("Check for Updates...")
+        }
+    }
+    
     
     @CommandsBuilder
     private func audioEffectsCommands() -> some Commands {

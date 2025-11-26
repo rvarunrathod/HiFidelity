@@ -7,14 +7,16 @@
 
 import AppKit
 import Foundation
+import Sparkle
 
 /// AppDelegate handles application lifecycle events and macOS-specific functionality
 class AppDelegate: NSObject, NSApplicationDelegate {
+    internal var updaterController: SPUStandardUpdaterController?
     
     // MARK: - Application Lifecycle
     
     func applicationDidFinishLaunching(_ notification: Notification) {
-        Logger.info("Application did finish launching")
+        Logger.info("HiFidelity is starting up...")
         
         NSWindow.allowsAutomaticWindowTabbing = false
         
@@ -27,6 +29,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         Task {
             await AppCoordinator.shared?.initializeApp()
         }
+        
+        updaterController = SPUStandardUpdaterController(
+            startingUpdater: true,
+            updaterDelegate: nil,
+            userDriverDelegate: nil
+        )
+        
+        Logger.info("Application did finish launching")
     }
     
     func applicationWillTerminate(_ notification: Notification) {

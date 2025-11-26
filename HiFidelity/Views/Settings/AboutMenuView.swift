@@ -6,10 +6,12 @@
 //
 
 import SwiftUI
-
+import Sparkle
 
 struct AboutMenuView: View {
     @State private var libraryStats: LibraryStats?
+    @AppStorage("automaticUpdatesEnabled")
+    private var automaticUpdatesEnabled = true
     
     var body: some View {
         VStack(spacing: 24) {
@@ -71,6 +73,15 @@ struct AboutMenuView: View {
             Text(AppInfo.version)
                 .font(.subheadline)
                 .foregroundColor(.secondary)
+            
+            Toggle("Check for updates automatically", isOn: $automaticUpdatesEnabled)
+                .help("Automatically download and install updates when available")
+                .onChange(of: automaticUpdatesEnabled) { _, newValue in
+                    if let appDelegate = NSApp.delegate as? AppDelegate,
+                       let updater = appDelegate.updaterController?.updater {
+                        updater.automaticallyChecksForUpdates = newValue
+                    }
+                }
         }
     }
 

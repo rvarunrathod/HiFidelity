@@ -44,8 +44,11 @@ HiFidelity supports 35+ audio formats:
 - **Playback History**: Keep track of what you've listened to
 - **Favorites**: Mark and organize your favorite tracks
 
-![Autoplay Queue](docs/images/Autoplay-queue.png)
-![Lyrics Support](docs/images/Lyrics%20support.png)
+<div align="center">
+  <img src="docs/images/Autoplay-queue.png" alt="Autoplay Queue" height="400" style="margin: 0 10px;">
+  <img src="docs/images/Lyrics%20support.png" alt="Lyrics Support" height="400" style="margin: 0 10px;">
+</div>
+
 ![Search View](docs/images/Search-view.png)
 
 ### Modern macOS Experience

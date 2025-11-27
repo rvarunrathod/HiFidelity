@@ -11,7 +11,6 @@ struct AdvancedSettings: View {
     @EnvironmentObject var databaseManager: DatabaseManager
     @AppStorage("artworkCacheSize") private var cacheSize: Double = 500
     @State private var showResetConfirm = false
-    @State private var cacheStats: ArtworkCacheStats?
     
     var body: some View {
         VStack(alignment: .leading, spacing: 32) {

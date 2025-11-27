@@ -21,6 +21,13 @@ struct LyricsPanel: View {
     @State private var isDraggingOver = false
     @State private var isAppActive = true
     
+    // Online lyrics search
+    @State private var isSearchingLyrics = false
+    @State private var showSearchResults = false
+    @State private var searchResults: [LyricsSearchResult] = []
+    @State private var searchError: String?
+    @State private var isLoadingSearch = false
+    
     // Timer for updating current line
     @State private var updateTimer: Timer?
     
@@ -60,6 +67,9 @@ struct LyricsPanel: View {
         } message: {
             Text("LRC file has been imported successfully")
         }
+        .sheet(isPresented: $showSearchResults) {
+            searchResultsView
+        }
         .onChange(of: playback.currentTrack) { _, newTrack in
             loadLyricsFor(track: newTrack)
         }
@@ -91,11 +101,19 @@ struct LyricsPanel: View {
             
             if playback.currentTrack != nil {
                 Menu {
+                    Button(action: searchOnlineLyrics) {
+                        Label("Search Online", systemImage: "magnifyingglass")
+                    }
+                    .disabled(isLoadingSearch || lyrics != nil)
+                    
                     Button(action: { isImportingLRC = true }) {
                         Label("Import LRC File", systemImage: "doc.badge.plus")
                     }
+                    .disabled(lyrics != nil)
                     
                     if lyrics != nil {
+                        Divider()
+                        
                         Button(action: exportLyrics) {
                             Label("Export LRC File", systemImage: "square.and.arrow.up")
                         }
@@ -113,6 +131,7 @@ struct LyricsPanel: View {
                         .frame(width: 28, height: 28)
                 }
                 .menuStyle(BorderlessButtonMenuStyle())
+                .frame(width: 28)
             }
         }
         .padding(.horizontal, 20)
@@ -209,29 +228,62 @@ struct LyricsPanel: View {
             .animation(.easeInOut(duration: 0.3), value: isCurrent)
     }
     
+    
+    
     private var noLyricsView: some View {
         VStack(spacing: 16) {
             Image(systemName: "text.quote")
-                .font(.system(size: 42))
+                .font(.system(size: 52))
                 .foregroundColor(.secondary.opacity(0.2))
             
             Text("No lyrics available")
                 .font(AppFonts.bodyLarge)
                 .foregroundColor(.secondary)
             
-            Button(action: { isImportingLRC = true }) {
-                Label("Import LRC File", systemImage: "doc.badge.plus")
-                    .font(.system(size: 14, weight: .medium))
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
+            Spacer()
+            
+            Button(action: searchOnlineLyrics) {
+                if isLoadingSearch {
+                    ProgressView()
+                        .scaleEffect(0.8)
+                        .frame(minWidth: 140)
+                        .frame(height: 28)
+                } else {
+                    Label("Search Online", systemImage: "magnifyingglass")
+                        .font(.system(size: 14, weight: .medium))
+                        .padding(4)
+                }
             }
             .buttonStyle(.borderedProminent)
             .tint(theme.currentTheme.primaryColor)
+            .disabled(isLoadingSearch)
+            .frame(minWidth: 140)
+                
+            Text("OR")
+                .font(AppFonts.bodyLarge)
+                .foregroundColor(.secondary)
+            
+                
+            Button(action: { isImportingLRC = true }) {
+                Label("Import LRC File", systemImage: "doc.badge.plus")
+                    .font(.system(size: 14, weight: .medium))
+                    .padding(4)
+            }
+            .buttonStyle(.bordered)
+            .frame(minWidth: 140)
+        
             
             Text("or drag and drop an LRC file here")
                 .font(.system(size: 12))
                 .foregroundColor(.secondary.opacity(0.7))
                 .padding(.top, 4)
+            
+            if let error = searchError {
+                Text(error)
+                    .font(.system(size: 12))
+                    .foregroundColor(.red)
+                    .padding(.top, 8)
+            }
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 60)
@@ -533,6 +585,213 @@ struct LyricsPanel: View {
                 Logger.error("Failed to remove lyrics: \(error)")
             }
         }
+    }
+    
+    // MARK: - Online Lyrics Search
+    
+    private func searchOnlineLyrics() {
+        guard let track = playback.currentTrack else { return }
+        
+        searchError = nil
+        isLoadingSearch = true
+        
+        Task {
+            do {
+                let results = try await LyricsService.shared.searchLyrics(
+                    trackName: track.title,
+                    artistName: track.artist,
+                    albumName: track.album,
+                    duration: Int(track.duration)
+                )
+                
+                await MainActor.run {
+                    isLoadingSearch = false
+                    
+                    if results.isEmpty {
+                        searchError = "No lyrics found for this track"
+                    } else if results.count == 1, let result = results.first, result.hasSyncedLyrics {
+                        // Auto-import if only one result with synced lyrics
+                        importSearchResult(result)
+                    } else {
+                        // Show results for user selection
+                        searchResults = results
+                        showSearchResults = true
+                    }
+                }
+            } catch {
+                await MainActor.run {
+                    isLoadingSearch = false
+                    searchError = error.localizedDescription
+                    Logger.error("Lyrics search failed: \(error)")
+                }
+            }
+        }
+    }
+    
+    private func importSearchResult(_ result: LyricsSearchResult) {
+        guard let track = playback.currentTrack,
+              let lrcContent = result.lrcContent else { return }
+        
+        // Parse to validate
+        let parsedLyrics = Lyrics(lrcContent: lrcContent)
+        guard !parsedLyrics.lines.isEmpty else {
+            searchError = "Failed to parse lyrics"
+            return
+        }
+        
+        Task {
+            do {
+                try await saveLyricsToDatabase(track: track, lrcContent: lrcContent)
+                
+                await MainActor.run {
+                    lyrics = parsedLyrics
+                    searchError = nil
+                    showSearchResults = false
+                    showImportSuccess = true
+                    Logger.info("Online lyrics imported: \(parsedLyrics.lines.count) lines")
+                }
+            } catch {
+                await MainActor.run {
+                    searchError = "Failed to save lyrics"
+                    Logger.error("Failed to save online lyrics: \(error)")
+                }
+            }
+        }
+    }
+    
+    // MARK: - Search Results View
+    
+    private var searchResultsView: some View {
+        VStack(spacing: 0) {
+            // Header
+            HStack {
+                Text("Search Results")
+                    .font(.system(size: 18, weight: .bold))
+                
+                Spacer()
+                
+                Button(action: { showSearchResults = false }) {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 20))
+                        .foregroundColor(.secondary)
+                }
+                .buttonStyle(.plain)
+            }
+            .padding()
+            
+            Divider()
+            
+            // Results list
+            if searchResults.isEmpty {
+                VStack(spacing: 16) {
+                    Image(systemName: "magnifyingglass")
+                        .font(.system(size: 48))
+                        .foregroundColor(.secondary.opacity(0.3))
+                    
+                    Text("No results found")
+                        .font(.system(size: 16))
+                        .foregroundColor(.secondary)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .padding()
+            } else {
+                ScrollView {
+                    LazyVStack(spacing: 1) {
+                        ForEach(searchResults) { result in
+                            searchResultRow(result: result)
+                        }
+                    }
+                }
+            }
+        }
+        .frame(width: 500, height: 600)
+        .background(Color(nsColor: .windowBackgroundColor))
+    }
+    
+    private func searchResultRow(result: LyricsSearchResult) -> some View {
+        Button(action: {
+            importSearchResult(result)
+        }) {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(result.trackName)
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(.primary)
+                        
+                        Text(result.artistName)
+                            .font(.system(size: 13))
+                            .foregroundColor(.secondary)
+                        
+                        if let album = result.albumName {
+                            Text(album)
+                                .font(.system(size: 12))
+                                .foregroundColor(.secondary.opacity(0.8))
+                        }
+                    }
+                    
+                    Spacer()
+                    
+                    VStack(alignment: .trailing, spacing: 4) {
+                        if result.hasSyncedLyrics {
+                            HStack(spacing: 4) {
+                                Image(systemName: "waveform")
+                                    .font(.system(size: 10))
+                                Text("Synced")
+                                    .font(.system(size: 11, weight: .medium))
+                            }
+                            .foregroundColor(theme.currentTheme.primaryColor)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(
+                                Capsule()
+                                    .fill(theme.currentTheme.primaryColor.opacity(0.1))
+                            )
+                        } else if result.plainLyrics != nil {
+                            Text("Plain")
+                                .font(.system(size: 11))
+                                .foregroundColor(.secondary)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(
+                                    Capsule()
+                                        .fill(Color.secondary.opacity(0.1))
+                                )
+                        }
+                        
+                        Text(formatDuration(result.duration))
+                            .font(.system(size: 12))
+                            .foregroundColor(.secondary)
+                    }
+                }
+                
+                if result.instrumental {
+                    HStack(spacing: 4) {
+                        Image(systemName: "music.note")
+                            .font(.system(size: 10))
+                        Text("Instrumental")
+                            .font(.system(size: 11))
+                    }
+                    .foregroundColor(.orange)
+                }
+            }
+            .padding()
+            .background(Color(nsColor: .controlBackgroundColor).opacity(0.5))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .overlay(
+            Rectangle()
+                .fill(Color.secondary.opacity(0.1))
+                .frame(height: 1),
+            alignment: .bottom
+        )
+    }
+    
+    private func formatDuration(_ seconds: Double) -> String {
+        let minutes = Int(seconds) / 60
+        let remainingSeconds = Int(seconds) % 60
+        return String(format: "%d:%02d", minutes, remainingSeconds)
     }
 }
 

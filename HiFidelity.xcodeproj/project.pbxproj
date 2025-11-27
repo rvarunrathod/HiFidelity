@@ -56,7 +56,6 @@
 			membershipExceptions = (
 				deps/include/taglib/tlist.tcc,
 				deps/include/taglib/tmap.tcc,
-				Info.plist,
 			);
 			target = BBDB7AD02EA796130003F406 /* HiFidelity */;
 		};

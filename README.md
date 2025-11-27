@@ -4,18 +4,18 @@
 <div>
 <h3>HiFidelity</h3>
 <p>A modern, offline-first music player for macOS with high-fidelity audio playback</p>
-<a href="https://github.com/rvarunrathod/HiFidelity/releases/latest"><img src=".github/assets/macos_download.png" width="140" alt="Download for macOS"/></a>
+<a href="https://github.com/rvarunrathod/HiFidelity/releases/latest"><img src="docs/assets/macos_download.png" width="140" alt="Download for macOS"/></a>
 </div>
 <br/><br/>
 
 ****
 ## Note: This is not malware.
-| How to fix it 
+> How to fix it 
 
-1. Open System Settings
-2. Go to Privacy & Security
+1. Open System **Settings**
+2. Go to **Privacy & Security**
 3. Scroll down until you see a message saying: “HiFidelity was blocked because it is not from an identified developer.”
-4. Click Allow Anyway
+4. Click **Allow Anyway**
 5. Open HiFidelity again
 6. When macOS asks, click Open
 
@@ -37,7 +37,7 @@ HiFidelity is a native macOS music player built for audiophiles and music enthus
 - Built-in equalizer with customizable presets
 - Browse by tracks, albums, artists, or genres
 - **Smart Recommendations**: Auto play functionality, you don't have to think what to play next
-- **Lyrics Display**: Synced lyrics support with real-time highlighting
+- **Lyrics**: Directly download lyrics within App and, Synced lyrics support with real-time highlighting powered by [lrclib](https://lrclib.net/)
 - **Advanced Search**: Find tracks instantly across your entire library with FTS5 
 - **Playback History**: Keep track of what you've listened to
 - **Favorites**: Mark and organize your favorite tracks
@@ -106,6 +106,7 @@ cd HiFidelity
 - [**TagLib**](https://taglib.org/): Metadata extraction
 - [**GRDB**](https://github.com/groue/GRDB.swift): Fast, reliable local database
 - [**Sparkle**](https://github.com/sparkle-project/Sparkle): A software update framework for macOS
+- [**Lrclib**](https://lrclib.net/): Utility for mass-downloading LRC synced lyrics for your offline music library. 
 - [**Petrichor**](https://github.com/kushalpandya/Petrichora): Learned lot from this code
 
 ---

@@ -80,10 +80,6 @@ final class LyricsService {
             throw LyricsServiceError.invalidURL
         }
         
-        
-        
-        
-        
         let (data, response) = try await session.data(from: url)
         
         guard let httpResponse = response as? HTTPURLResponse else {

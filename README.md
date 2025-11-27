@@ -4,7 +4,7 @@
 <div>
 <h3>HiFidelity</h3>
 <p>A modern, offline-first music player for macOS with high-fidelity audio playback</p>
-<a href="https://github.com/kushalpandya/Petrichor/releases/latest"><img src=".github/assets/macos_download.png" width="140" alt="Download for macOS"/></a>
+<a href="https://github.com/rvarunrathod/HiFidelity/releases/latest"><img src=".github/assets/macos_download.png" width="140" alt="Download for macOS"/></a>
 </div>
 <br/><br/>
 

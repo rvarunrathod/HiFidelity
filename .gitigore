@@ -1,0 +1,7 @@
+# Project directories
+
+.github/
+build/
+HiFidelity/
+HiFidelity.xcodeproj/
+Scripts/

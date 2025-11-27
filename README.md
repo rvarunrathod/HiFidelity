@@ -1,5 +1,5 @@
 # HiFidelity
-<img width="170" src="./HiFidelity/Assets.xcassets/AppIcon.appiconset/AppIcon512x512.png" alt="Petrichor App Icon" align="left"/>
+<img width="170" src="./HiFidelity/Assets.xcassets/AppIcon.appiconset/AppIcon512x512.png" alt="HiFidelity App Icon" align="left"/>
 
 <div>
 <h3>HiFidelity</h3>

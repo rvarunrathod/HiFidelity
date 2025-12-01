@@ -6,10 +6,20 @@
 <p>A modern, offline-first music player for macOS with high-fidelity audio playback</p>
 <a href="https://github.com/rvarunrathod/HiFidelity/releases/latest"><img src="docs/assets/macos_download.png" width="140" alt="Download for macOS"/></a>
 </div>
+
 <br/><br/>
 
+### Or install via Homebrew
+
+```bash
+brew tap rvarunrathod/tap
+brew install --cask rvarunrathod/tap/hifidelity
+```
+
+
 ****
-## Note: This is not malware.
+
+## ⚠️ Note: This app is not malware
 > How to fix it 
 
 1. Open System **Settings**

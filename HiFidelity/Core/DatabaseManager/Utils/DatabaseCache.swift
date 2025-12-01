@@ -16,7 +16,9 @@ import GRDB
 ///
 /// NOTE: This cache stores Track metadata WITHOUT artwork data.
 /// For artwork, use ArtworkCache which provides lazy-loading with LRU eviction.
-class DatabaseCache: ObservableObject {
+///
+/// Thread-safe via internal cacheQueue for concurrent access
+final class DatabaseCache: ObservableObject, @unchecked Sendable {
     // MARK: - Singleton
     static let shared = DatabaseCache()
     
@@ -26,11 +28,14 @@ class DatabaseCache: ObservableObject {
     @Published private(set) var allPlaylists: [Playlist] = []
     @Published private(set) var isLoading = false
     
+    // MARK: - Thread Safety
+    private let cacheQueue = DispatchQueue(label: "com.hifidelity.databasecache", attributes: .concurrent)
+    
     // MARK: - Cache State
     private var foldersCache: [Folder]?
     private var folderTracksCache: [Int64: [Track]] = [:] // folderId -> tracks
     private var allTracksCache: [Track]?
-    private var trackCache: [Int64: Track] = [:] // trackId -> track
+    private var trackCache: [Int64: Track] = [:] // trackId -> track (thread-safe via cacheQueue)
     private var playlistsCache: [Playlist]?
     
     private var lastFolderRefresh: Date?
@@ -69,7 +74,12 @@ class DatabaseCache: ObservableObject {
         foldersCache = nil
         folderTracksCache.removeAll()
         allTracksCache = nil
-        trackCache.removeAll()
+        
+        // Thread-safe clear of trackCache
+        cacheQueue.async(flags: .barrier) { [weak self] in
+            self?.trackCache.removeAll()
+        }
+        
         playlistsCache = nil
         lastFolderRefresh = nil
         lastTrackRefresh = nil
@@ -141,10 +151,12 @@ class DatabaseCache: ObservableObject {
             allTracksCache = tracks
             lastTrackRefresh = Date()
             
-            // Populate track cache for quick lookups
-            for track in tracks {
-                if let trackId = track.trackId {
-                    trackCache[trackId] = track
+            // Populate track cache for quick lookups (thread-safe)
+            cacheQueue.async(flags: .barrier) { [weak self] in
+                for track in tracks {
+                    if let trackId = track.trackId {
+                        self?.trackCache[trackId] = track
+                    }
                 }
             }
             
@@ -176,10 +188,12 @@ class DatabaseCache: ObservableObject {
             
             folderTracksCache[folderId] = tracks
             
-            // Populate track cache for quick lookups
-            for track in tracks {
-                if let trackId = track.trackId {
-                    trackCache[trackId] = track
+            // Populate track cache for quick lookups (thread-safe)
+            cacheQueue.async(flags: .barrier) { [weak self] in
+                for track in tracks {
+                    if let trackId = track.trackId {
+                        self?.trackCache[trackId] = track
+                    }
                 }
             }
             
@@ -199,10 +213,13 @@ class DatabaseCache: ObservableObject {
     /// Get a single track by ID (lightweight, WITHOUT artwork data)
     /// Use ArtworkCache to load artwork on-demand
     func getTrack(by id: Int64, forceRefresh: Bool = false) async throws -> Track? {
-        // Check cache first
-        if !forceRefresh, let cached = trackCache[id] {
-            Logger.debug("Using cached track for ID: \(id)")
-            return cached
+        // Check cache first (thread-safe)
+        if !forceRefresh {
+            let cached = cacheQueue.sync { trackCache[id] }
+            if let cached = cached {
+                Logger.debug("Using cached track for ID: \(id)")
+                return cached
+            }
         }
         
         // Load from database
@@ -213,16 +230,20 @@ class DatabaseCache: ObservableObject {
                 .fetchOne(db)
         }
         
-        // Cache if found
+        // Cache if found (thread-safe)
         if let track = track {
-            trackCache[id] = track
+            cacheQueue.async(flags: .barrier) { [weak self] in
+                self?.trackCache[id] = track
+            }
         }
         
         return track
     }
     
     func track(_ id: Int64) -> Track? {
-        trackCache[id]
+        cacheQueue.sync {
+            trackCache[id]
+        }
     }
     
     // MARK: - Playlists

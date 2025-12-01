@@ -34,10 +34,11 @@ struct HiFidelityApp: App {
                 }
         }
         .commands {
-            // View menu with audio effects
-            audioEffectsCommands()
-            
+            // App Menu Commands
             appMenuCommands()
+            
+            // View Menu Commands
+            viewMenuCommands()
         }
         .onChange(of: scenePhase) { oldPhase, newPhase in
             handleScenePhaseChange(newPhase)
@@ -48,7 +49,6 @@ struct HiFidelityApp: App {
         
         equalizerWindowContentView()
         
-        
     }
     
     init() {
@@ -56,9 +56,9 @@ struct HiFidelityApp: App {
         Logger.installCrashHandler()
         
         #if DEBUG
-        Logger.setMinimumLogLevel(.info)
+        Logger.setMinimumLogLevel(.debug)
         #else
-        Logger.setMinimumLogLevel(.warning)
+        Logger.setMinimumLogLevel(.info)
         #endif
         
         Logger.info("HiFidelity SwiftUI app initialized")
@@ -133,6 +133,16 @@ struct HiFidelityApp: App {
         }
     }
     
+    // MARK: - View Menu Commands
+    
+    @CommandsBuilder
+    private func viewMenuCommands() -> some Commands {
+        CommandGroup(after: .toolbar) {
+            audioEffects()
+//            visualEffects()
+        }
+    }
+    
     private func checkForUpdatesMenuItem() -> some View {
         Button {
             if let updater = appDelegate.updaterController?.updater {
@@ -144,21 +154,25 @@ struct HiFidelityApp: App {
     }
     
     
-    @CommandsBuilder
-    private func audioEffectsCommands() -> some Commands {
-        CommandGroup(after: .toolbar) {
-            Menu("DSP") {
-                Button {
-                    openWindow(id: "audio-effects")
-                } label: {
-                    Text("Equalizer")
-                }
-                .keyboardShortcut("e", modifiers: [.command, .option])
+    
+//    private func visualEffects() -> some View {
+//        Menu("Visualizer") {
+//            Button("Toggle Visualizer") {
+//                openWindow(id: "visualizer")
+//            }
+//            .keyboardShortcut("v", modifiers: .command)
+//        }
+//    }
+    
+    private func audioEffects() -> some View {
+        Menu("DSP") {
+            Button {
+                openWindow(id: "audio-effects")
+            } label: {
+                Text("Equalizer")
             }
-            
-            Divider()
+            .keyboardShortcut("e", modifiers: [.command, .option])
         }
-        
     }
 
 }

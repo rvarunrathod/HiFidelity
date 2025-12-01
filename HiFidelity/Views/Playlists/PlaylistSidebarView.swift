@@ -34,7 +34,8 @@ struct PlaylistSidebarView: View {
             // Playlist items
             if viewModel.isLoading {
                 ProgressView()
-                    .padding()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .padding(.bottom, 90)
             } else if viewModel.allPlaylists.isEmpty {
                 emptyStateView
                     .padding(.bottom, 90)
@@ -386,5 +387,25 @@ final class PlaylistSidebarViewModel: ObservableObject {
             Logger.error("Failed to toggle pin: \(error)")
         }
     }
+}
+
+// MARK: - Preview
+
+#Preview {
+    struct PreviewWrapper: View {
+        @State private var selectedTab: NavigationTab = .home
+        @State private var selectedEntity: EntityType?
+        
+        var body: some View {
+            PlaylistSidebarView(
+                selectedTab: $selectedTab,
+                selectedEntity: $selectedEntity
+            )
+            .environmentObject(DatabaseManager.shared)
+            .frame(width: 280, height: 800)
+        }
+    }
+    
+    return PreviewWrapper()
 }
 

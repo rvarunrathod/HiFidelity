@@ -9,15 +9,23 @@ import SwiftUI
 
 /// Artists tab view displaying all artists in a grid layout
 struct ArtistsTabView: View {
+    @Binding var selectedEntity: EntityType?
+    let isVisible: Bool
+    
     @EnvironmentObject var databaseManager: DatabaseManager
     @ObservedObject var theme = AppTheme.shared
-    @Binding var selectedEntity: EntityType?
     
     @State private var artists: [Artist] = []
     @State private var filteredArtists: [Artist] = []
     @State private var isLoading = false
+    @State private var hasLoadedOnce = false
     @State private var selectedSort = SortOption(id: "name", title: "Name", type: .alphabetical, ascending: true)
     @State private var selectedFilter: FilterOption? = nil
+    
+    init(selectedEntity: Binding<EntityType?>, isVisible: Bool = true) {
+        self._selectedEntity = selectedEntity
+        self.isVisible = isVisible
+    }
     
     private let sortOptions = [
         SortOption(id: "name", title: "Name", type: .alphabetical, ascending: true),
@@ -40,8 +48,7 @@ struct ArtistsTabView: View {
             
             // Content
             if isLoading {
-                ProgressView()
-                    .padding()
+                loadingView
             } else if filteredArtists.isEmpty {
                 if artists.isEmpty {
                     emptyStateView(icon: "person.2", message: "No artists in library")
@@ -69,8 +76,26 @@ struct ArtistsTabView: View {
                 }
             }
         }
-        .task {
-            await loadArtists()
+        .onChange(of: isVisible) { _, newValue in
+            if newValue && !hasLoadedOnce {
+                Task {
+                    await loadArtists()
+                    hasLoadedOnce = true
+                }
+            }
+        }
+        .onAppear {
+            if isVisible && !hasLoadedOnce {
+                Task {
+                    await loadArtists()
+                    hasLoadedOnce = true
+                }
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .refreshLibraryData)) { _ in
+            Task {
+                await loadArtists()
+            }
         }
         .onChange(of: selectedSort) { _, _ in
             applyFiltersAndSort()
@@ -78,6 +103,27 @@ struct ArtistsTabView: View {
         .onChange(of: selectedFilter) { _, _ in
             applyFiltersAndSort()
         }
+    }
+    
+    // MARK: - Loading View
+    
+    private var loadingView: some View {
+        VStack {
+            Spacer()
+            
+            VStack(spacing: 16) {
+                ProgressView()
+                    .scaleEffect(1.2)
+                    .tint(theme.currentTheme.primaryColor)
+                
+                Text("Loading artists...")
+                    .font(.system(size: 14))
+                    .foregroundColor(.secondary)
+            }
+            
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
     
     // MARK: - Toolbar
@@ -114,6 +160,15 @@ struct ArtistsTabView: View {
         do {
             artists = try await databaseManager.getAllArtists()
             applyFiltersAndSort()
+            
+            // Preload artwork for initially visible artists
+            Task {
+                let visibleCount = min(20, filteredArtists.count)
+                let visibleArtistIds = filteredArtists.prefix(visibleCount).compactMap { $0.id }
+                for artistId in visibleArtistIds {
+                    ArtworkCache.shared.getArtistArtwork(for: artistId, size: 160) { _ in }
+                }
+            }
         } catch {
             Logger.error("Failed to load artists: \(error)")
         }

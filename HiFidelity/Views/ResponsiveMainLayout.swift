@@ -49,8 +49,8 @@ struct ResponsiveMainLayout: View {
                             .transition(.move(edge: .trailing).combined(with: .opacity))
                     }
                 }
-                .animation(.easeInOut(duration: 0.25), value: showLeftSidebar)
-                .animation(.easeInOut(duration: 0.25), value: showRightPanel)
+                .animation(.easeInOut(duration: 0.5), value: showLeftSidebar)
+                .animation(.easeInOut(duration: 0.5), value: showRightPanel)
                 
                 // Bottom: Playback Bar (overlaid)
                 VStack {

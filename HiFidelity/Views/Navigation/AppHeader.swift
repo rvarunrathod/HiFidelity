@@ -124,6 +124,9 @@ struct AppHeader: View {
                 }
             }
             
+            // Refresh library button
+            RefreshButton()
+            
             // Notifications
             NotificationTray()
             
@@ -155,6 +158,58 @@ struct AppHeader: View {
 }
 
 // MARK: - Subcomponents
+
+/// Refresh library button - clears cache and reloads all views
+private struct RefreshButton: View {
+    @State private var isRefreshing = false
+    @ObservedObject var theme = AppTheme.shared
+    
+    var body: some View {
+        Button {
+            withAnimation(.easeInOut(duration: 0.6)) {
+                isRefreshing = true
+            }
+            performRefresh()
+        } label: {
+            Image(systemName: "arrow.triangle.2.circlepath")
+                .rotationEffect(.degrees(isRefreshing ? 360 : 0))
+                .animation(
+                    isRefreshing
+                        ? .linear(duration: 1.0).repeatForever(autoreverses: false)
+                        : .default,
+                    value: isRefreshing
+                )
+                .font(.system(size: 18, weight: .medium))
+                .foregroundColor(isRefreshing ? theme.currentTheme.primaryColor : .secondary)
+                .frame(width: 36, height: 36)
+                .background(
+                    Circle()
+                        .fill(isRefreshing ? theme.currentTheme.primaryColor.opacity(0.1) : Color.clear)
+                )
+        }
+        .buttonStyle(PlainHoverButtonStyle())
+        .disabled(isRefreshing)
+        .help("Refresh library")
+    }
+    
+    private func performRefresh() {
+        Task {
+            // Notify views to reload
+            await MainActor.run {
+                NotificationCenter.default.post(name: .refreshLibraryData, object: nil)
+                NotificationManager.shared.addMessage(.info, "Library refreshed")
+            }
+            
+            // Stop animation after reload
+            try? await Task.sleep(for: .seconds(1))
+            await MainActor.run {
+                withAnimation {
+                    isRefreshing = false
+                }
+            }
+        }
+    }
+}
 
 /// Reusable toggle button for sidebar controls
 private struct ToggleButton: View {

@@ -22,6 +22,7 @@ func emptyStateView(icon: String, message: String) -> some View {
     .frame(maxWidth: .infinity, maxHeight: .infinity)
 }
 
+
 // MARK: - Album Card
 
 struct AlbumCard: View, Equatable {

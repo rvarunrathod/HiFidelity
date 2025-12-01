@@ -9,6 +9,8 @@ import SwiftUI
 
 /// Tracks tab view displaying all library tracks with list/grid view and sorting
 struct TracksTabView: View {
+    let isVisible: Bool
+    
     @EnvironmentObject var databaseManager: DatabaseManager
     @ObservedObject var theme = AppTheme.shared
     @ObservedObject var playback = PlaybackController.shared
@@ -17,10 +19,15 @@ struct TracksTabView: View {
     @State private var filteredTracks: [Track] = []
     @State private var sortedTracks: [Track] = []
     @State private var isLoading = false
+    @State private var hasLoadedOnce = false
     @State private var viewType: ViewType = .list
     @State private var selectedTrack: Track.ID?
     @State private var sortOrder = [KeyPathComparator(\Track.title, order: .forward)]
     @State private var selectedFilter: TrackFilter? = nil
+    
+    init(isVisible: Bool = true) {
+        self.isVisible = isVisible
+    }
     
     var body: some View {
         VStack(spacing: 0) {
@@ -38,10 +45,23 @@ struct TracksTabView: View {
                 trackContent
             }
         }
-        .task {
-            await loadTracks()
+        .onChange(of: isVisible) { _, newValue in
+            if newValue && !hasLoadedOnce {
+                Task {
+                    await loadTracks()
+                    hasLoadedOnce = true
+                }
+            }
         }
-        .onReceive(NotificationCenter.default.publisher(for: .libraryDataDidChange)) { _ in
+        .onAppear {
+            if isVisible && !hasLoadedOnce {
+                Task {
+                    await loadTracks()
+                    hasLoadedOnce = true
+                }
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .refreshLibraryData)) { _ in
             Task {
                 await loadTracks()
             }
@@ -200,7 +220,7 @@ struct TracksTabView: View {
             
             VStack(spacing: 16) {
                 ProgressView()
-                    .scaleEffect(1.5)
+                    .scaleEffect(1.2)
                     .tint(theme.currentTheme.primaryColor)
                 
                 Text("Loading tracks...")

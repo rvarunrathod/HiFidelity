@@ -61,15 +61,23 @@ struct HomeView: View {
     
     @ViewBuilder
     private var tabContent: some View {
-        switch selectedLibraryTab {
-        case .tracks:
-            TracksTabView()
-        case .albums:
-            AlbumsTabView(selectedEntity: $selectedEntity)
-        case .artists:
-            ArtistsTabView(selectedEntity: $selectedEntity)
-        case .genres:
-            GenresTabView(selectedEntity: $selectedEntity)
+        // Use ZStack with opacity to keep all views alive but show only the selected one
+        ZStack {
+            TracksTabView(isVisible: selectedLibraryTab == .tracks)
+                .opacity(selectedLibraryTab == .tracks ? 1 : 0)
+                .zIndex(selectedLibraryTab == .tracks ? 1 : 0)
+            
+            AlbumsTabView(selectedEntity: $selectedEntity, isVisible: selectedLibraryTab == .albums)
+                .opacity(selectedLibraryTab == .albums ? 1 : 0)
+                .zIndex(selectedLibraryTab == .albums ? 1 : 0)
+            
+            ArtistsTabView(selectedEntity: $selectedEntity, isVisible: selectedLibraryTab == .artists)
+                .opacity(selectedLibraryTab == .artists ? 1 : 0)
+                .zIndex(selectedLibraryTab == .artists ? 1 : 0)
+            
+            GenresTabView(selectedEntity: $selectedEntity, isVisible: selectedLibraryTab == .genres)
+                .opacity(selectedLibraryTab == .genres ? 1 : 0)
+                .zIndex(selectedLibraryTab == .genres ? 1 : 0)
         }
     }
 }

@@ -9,15 +9,23 @@ import SwiftUI
 
 /// Genres tab view displaying all genres in a grid layout
 struct GenresTabView: View {
+    @Binding var selectedEntity: EntityType?
+    let isVisible: Bool
+    
     @EnvironmentObject var databaseManager: DatabaseManager
     @ObservedObject var theme = AppTheme.shared
-    @Binding var selectedEntity: EntityType?
     
     @State private var genres: [Genre] = []
     @State private var filteredGenres: [Genre] = []
     @State private var isLoading = false
+    @State private var hasLoadedOnce = false
     @State private var selectedSort = SortOption(id: "name", title: "Name", type: .alphabetical, ascending: true)
     @State private var selectedFilter: FilterOption? = nil
+    
+    init(selectedEntity: Binding<EntityType?>, isVisible: Bool = true) {
+        self._selectedEntity = selectedEntity
+        self.isVisible = isVisible
+    }
     
     private let sortOptions = [
         SortOption(id: "name", title: "Name", type: .alphabetical, ascending: true),
@@ -38,8 +46,7 @@ struct GenresTabView: View {
             
             // Content
             if isLoading {
-                ProgressView()
-                    .padding()
+                loadingView
             } else if filteredGenres.isEmpty {
                 if genres.isEmpty {
                     emptyStateView(icon: "guitars", message: "No genres in library")
@@ -63,8 +70,26 @@ struct GenresTabView: View {
                 }
             }
         }
-        .task {
-            await loadGenres()
+        .onChange(of: isVisible) { _, newValue in
+            if newValue && !hasLoadedOnce {
+                Task {
+                    await loadGenres()
+                    hasLoadedOnce = true
+                }
+            }
+        }
+        .onAppear {
+            if isVisible && !hasLoadedOnce {
+                Task {
+                    await loadGenres()
+                    hasLoadedOnce = true
+                }
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .refreshLibraryData)) { _ in
+            Task {
+                await loadGenres()
+            }
         }
         .onChange(of: selectedSort) { _, _ in
             applyFiltersAndSort()
@@ -72,6 +97,27 @@ struct GenresTabView: View {
         .onChange(of: selectedFilter) { _, _ in
             applyFiltersAndSort()
         }
+    }
+    
+    // MARK: - Loading View
+    
+    private var loadingView: some View {
+        VStack {
+            Spacer()
+            
+            VStack(spacing: 16) {
+                ProgressView()
+                    .scaleEffect(1.2)
+                    .tint(theme.currentTheme.primaryColor)
+                
+                Text("Loading genres...")
+                    .font(.system(size: 14))
+                    .foregroundColor(.secondary)
+            }
+            
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
     
     // MARK: - Toolbar

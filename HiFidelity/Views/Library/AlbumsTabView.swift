@@ -9,15 +9,23 @@ import SwiftUI
 
 /// Albums tab view displaying all albums in a grid layout
 struct AlbumsTabView: View {
+    @Binding var selectedEntity: EntityType?
+    let isVisible: Bool
+    
     @EnvironmentObject var databaseManager: DatabaseManager
     @ObservedObject var theme = AppTheme.shared
-    @Binding var selectedEntity: EntityType?
     
     @State private var albums: [Album] = []
     @State private var filteredAlbums: [Album] = []
     @State private var isLoading = false
+    @State private var hasLoadedOnce = false
     @State private var selectedSort = SortOption(id: "name", title: "Name", type: .alphabetical, ascending: true)
     @State private var selectedFilter: FilterOption? = nil
+    
+    init(selectedEntity: Binding<EntityType?>, isVisible: Bool = true) {
+        self._selectedEntity = selectedEntity
+        self.isVisible = isVisible
+    }
     
 
     
@@ -44,8 +52,7 @@ struct AlbumsTabView: View {
             
             // Content
             if isLoading {
-                ProgressView()
-                    .padding()
+                loadingView
             } else if filteredAlbums.isEmpty {
                 if albums.isEmpty {
                     emptyStateView(icon: "square.stack", message: "No albums in library")
@@ -73,8 +80,26 @@ struct AlbumsTabView: View {
                 }
             }
         }
-        .task {
-            await loadAlbums()
+        .onChange(of: isVisible) { _, newValue in
+            if newValue && !hasLoadedOnce {
+                Task {
+                    await loadAlbums()
+                    hasLoadedOnce = true
+                }
+            }
+        }
+        .onAppear {
+            if isVisible && !hasLoadedOnce {
+                Task {
+                    await loadAlbums()
+                    hasLoadedOnce = true
+                }
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .refreshLibraryData)) { _ in
+            Task {
+                await loadAlbums()
+            }
         }
         .onChange(of: selectedSort) { _, _ in
             applyFiltersAndSort()
@@ -82,6 +107,27 @@ struct AlbumsTabView: View {
         .onChange(of: selectedFilter) { _, _ in
             applyFiltersAndSort()
         }
+    }
+    
+    // MARK: - Loading View
+    
+    private var loadingView: some View {
+        VStack {
+            Spacer()
+            
+            VStack(spacing: 16) {
+                ProgressView()
+                    .scaleEffect(1.2)
+                    .tint(theme.currentTheme.primaryColor)
+                
+                Text("Loading albums...")
+                    .font(.system(size: 14))
+                    .foregroundColor(.secondary)
+            }
+            
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
     
     
@@ -118,6 +164,13 @@ struct AlbumsTabView: View {
         do {
             albums = try await databaseManager.getAllAlbums()
             applyFiltersAndSort()
+            
+            // Preload artwork for initially visible albums
+            Task {
+                let visibleCount = min(20, filteredAlbums.count)
+                let visibleAlbumIds = filteredAlbums.prefix(visibleCount).compactMap { $0.id }
+                ArtworkCache.shared.preloadAlbumArtwork(for: visibleAlbumIds, size: 160)
+            }
         } catch {
             Logger.error("Failed to load albums: \(error)")
         }

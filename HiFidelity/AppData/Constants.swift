@@ -78,8 +78,8 @@ enum About {
     static let appWebsite = "https://github.com/rvarunrathod/HiFidelity"
     static let appWiki = "https://github.com/rvarunrathod/HiFidelity/wiki"
     static let sponsor = "https://github.com/sponsors/rvarunrathod"
-    static let appVersion = "1.0.1"
-    static let appBuild = "2"
+    static let appVersion = "1.0.2"
+    static let appBuild = "102"
 }
 
 
@@ -88,6 +88,7 @@ enum About {
 extension Notification.Name {
     // Library data changes
     static let libraryDataDidChange = Notification.Name("LibraryDataDidChange")
+    static let refreshLibraryData = Notification.Name("RefreshLibraryData") // Manual refresh triggered by user
     static let foldersDataDidChange = Notification.Name("FoldersDataDidChange")
     static let playlistsDidChange = Notification.Name("PlaylistsDidChange")
     static let playlistCreated = Notification.Name("PlaylistCreated") // Includes playlist object for auto-add functionality

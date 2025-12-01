@@ -8,8 +8,17 @@
 </div>
 <br/><br/>
 
+### Or install via Homebrew
+
+```bash
+brew tap rvarunrathod/tap
+brew install --cask rvarunrathod/tap/hifidelity
+```
+
+
 ****
-## Note: This is not malware.
+
+## ⚠️ Note: This app is not malware
 > How to fix it 
 
 1. Open System **Settings**

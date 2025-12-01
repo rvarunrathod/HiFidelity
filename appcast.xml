@@ -5,6 +5,30 @@
         <description>Updates for HiFidelity - High-Fidelity Music Player</description>
         <language>en</language>
         <item>
+        <title>Version 1.0.2</title>
+            <pubDate>Mon, 01 Dec 2025 09:05:20 +0530</pubDate>
+            <sparkle:version>102</sparkle:version>
+            <sparkle:shortVersionString>1.0.2</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <enclosure
+                url="https://github.com/rvarunrathod/HiFidelity/releases/download/v1.0.2/HiFidelity-1.0.2-Universal.dmg"
+                sparkle:edSignature="Tfgd5WSCGr54f5lf5cL+N7K/8/RGjzQgjWgV5zA9Peh1Y0S8ylWJByddBlYs/Mwx7627hsO3ac/wKd3GOu2hBA=="
+                length="9847274"
+                type="application/octet-stream"
+            />
+            <description><![CDATA[
+                <h2>Improvement</h2>
+<ul>
+    <li>Added library refresh functionality and removed auto refresh for better UI/UX</li>
+</ul>
+<h2>Fixes</h2>
+<ul>
+    <li>Handled app crash because of concurrent track function access</li>
+</ul>
+<p><a href="https://github.com/rvarunrathod/HiFidelity/compare/v1.0.1...v1.0.2">Full Changelog</a></p>
+            ]]></description>
+        </item>
+        <item>
             <title>Version 1.0.1</title>
             <pubDate>Thu, 27 Nov 2025 18:18:18 +0530</pubDate>
             <sparkle:version>101</sparkle:version>

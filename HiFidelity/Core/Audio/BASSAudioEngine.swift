@@ -15,6 +15,7 @@ class BASSAudioEngine {
     // MARK: - Properties
     
     private var currentStream: HSTREAM = 0
+    private var nextStream: HSTREAM = 0  // For gapless playback
     private var isInitialized = false
     private var loadedPlugins: [HPLUGIN] = []
     private let settings = AudioSettings.shared
@@ -258,6 +259,97 @@ class BASSAudioEngine {
     
     func resume() -> Bool {
         return play()
+    }
+    
+    // MARK: - Gapless Playback
+    
+    /// Pre-load the next track for gapless playback
+    func preloadNext(url: URL) -> Bool {
+        guard isInitialized else {
+            Logger.error("BASS engine not initialized")
+            return false
+        }
+        
+        // Check if file exists
+        guard FileManager.default.fileExists(atPath: url.path) else {
+            Logger.error("File does not exist: \(url.path)")
+            return false
+        }
+        
+        // Free existing next stream if any
+        if nextStream != 0 {
+            BASS_StreamFree(nextStream)
+            nextStream = 0
+        }
+        
+        // Create stream from file for immediate playback after current track ends
+        let path = url.path
+        
+        nextStream = BASS_StreamCreateFile(
+            BOOL32(truncating: false),
+            path,
+            0,
+            0,
+            DWORD(BASS_SAMPLE_FLOAT | BASS_STREAM_PRESCAN)
+        )
+        
+        if nextStream == 0 {
+            let errorCode = BASS_ErrorGetCode()
+            Logger.error("Failed to pre-load next stream: error \(errorCode)")
+            return false
+        }
+        
+        Logger.debug("Pre-loaded next track for gapless: \(url.lastPathComponent)")
+        return true
+    }
+    
+    /// Switch to the pre-loaded next track (gapless transition)
+    func switchToPreloadedTrack(volume: Float) -> Bool {
+        guard nextStream != 0 else {
+            Logger.error("No pre-loaded track available")
+            return false
+        }
+        
+        // Stop and free current stream
+        if currentStream != 0 {
+            BASS_ChannelStop(currentStream)
+            BASS_StreamFree(currentStream)
+        }
+        
+        // Make next stream the current stream
+        currentStream = nextStream
+        nextStream = 0
+        
+        // Set up the new stream
+        BASS_ChannelSetAttribute(currentStream, DWORD(BASS_ATTRIB_VOL), volume)
+        setupStreamEndCallback()
+        effectsManager.setStream(currentStream)
+        
+        // Start playback immediately
+        let result = BASS_ChannelPlay(currentStream, 0)
+        
+        if result == 0 {
+            let errorCode = BASS_ErrorGetCode()
+            Logger.error("Failed to play pre-loaded stream: error \(errorCode)")
+            return false
+        }
+        
+        Logger.debug("Switched to pre-loaded track (gapless)")
+        return true
+    }
+    
+    /// Check if next track is pre-loaded
+    func hasPreloadedTrack() -> Bool {
+        return nextStream != 0
+    }
+    
+    /// Clear pre-loaded track
+    func clearPreloadedTrack() {
+        if nextStream != 0 {
+            BASS_StreamFree(nextStream)
+            nextStream = 0
+            Logger.debug("Cleared pre-loaded track")
+        }
     }
     
     // MARK: - Stream Properties

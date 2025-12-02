@@ -212,11 +212,6 @@ extension DatabaseManager {
     private func processUpdatedTrack(_ track: Track, metadata: TrackMetadata, in db: Database) throws {
         var mutableTrack = track
         
-        // Get old entity IDs before updating
-        let oldAlbumId = mutableTrack.albumId
-        let oldArtistId = mutableTrack.artistId
-        let oldGenreId = mutableTrack.genreId
-        
         // Determine where to store artwork based on album validity
         let hasValidAlbum = !track.album.isEmpty && track.album != "Unknown Album"
         

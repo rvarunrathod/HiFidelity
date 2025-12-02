@@ -72,6 +72,11 @@ class PlaybackController: ObservableObject {
     private let audioEngine: BASSAudioEngine
     private var positionUpdateTimer: Timer?
     
+    // Gapless playback
+    private var nextTrack: Track?
+    private var isNextTrackPreloaded = false
+    private let gaplessThreshold: Double = 5.0  // Pre-load next track when 5 seconds remaining
+    
     // Recommendation Engine
     private let recommendationEngine = RecommendationEngine.shared
     
@@ -183,17 +188,23 @@ class PlaybackController: ObservableObject {
     }
     
     @objc private func handleStreamEnded() {
-        Logger.info("Stream ended, playing next track")
+        Logger.info("Stream ended")
         
         switch repeatMode {
         case .one:
             // Replay current track
-            seek(to: 0)
-            play()
-        case .all, .off:
-            // Play next track
             DispatchQueue.main.async {
-                self.next()
+                self.seek(to: 0)
+                self.play()
+            }
+        case .all, .off:
+            // Play next track (gapless if pre-loaded)
+            DispatchQueue.main.async {
+                if self.isNextTrackPreloaded && self.nextTrack != nil {
+                    self.playPreloadedTrack()
+                } else {
+                    self.next()
+                }
             }
         }
     }
@@ -264,8 +275,14 @@ class PlaybackController: ObservableObject {
     /// Stop playback when queue ends (pause instead of stop to keep track loaded for seeking)
     private func stopPlayback() {
         audioEngine.pause()
+        audioEngine.clearPreloadedTrack()
         isPlaying = false
         stopPositionTimer()
+        
+        // Clear gapless state
+        nextTrack = nil
+        isNextTrackPreloaded = false
+        
         Logger.info("Playback stopped - end of queue")
     }
     
@@ -486,8 +503,9 @@ class PlaybackController: ObservableObject {
     private func playTrackAtIndex(_ index: Int) {
         guard index >= 0 && index < queue.count else { return }
         
-        // Stop current track
+        // Stop current track and clear pre-loaded track
         audioEngine.stop()
+        audioEngine.clearPreloadedTrack()
         
         // Save current track to history
         if let current = currentTrack {
@@ -497,7 +515,136 @@ class PlaybackController: ObservableObject {
         currentTrack = queue[index]
         currentTime = 0
         duration = 0 // Will be set when track loads
+        
+        // Reset gapless state
+        isNextTrackPreloaded = false
+        nextTrack = nil
+        
         play()
+        
+        // Pre-load next track for gapless playback
+        prepareNextTrackForGapless()
+    }
+    
+    /// Play the pre-loaded next track (gapless transition)
+    private func playPreloadedTrack() {
+        Logger.info("Playing pre-loaded track for gapless playback")
+        
+        guard let track = nextTrack, isNextTrackPreloaded else {
+            Logger.warning("No pre-loaded track available, falling back to regular next")
+            next()
+            return
+        }
+        
+        // Update queue position
+        if isShuffleEnabled {
+            // Mark current as played in shuffle mode
+            if currentQueueIndex >= 0 && currentQueueIndex < shuffledIndices.count {
+                shufflePlayedIndices.insert(shuffledIndices[currentQueueIndex])
+            }
+            
+            // Find next unplayed or move to next position
+            if let nextIndex = findNextUnplayedShuffleIndex() {
+                currentQueueIndex = nextIndex
+            } else if repeatMode == .all {
+                resetShuffleState()
+                currentQueueIndex = 0
+            } else {
+                currentQueueIndex += 1
+            }
+        } else {
+            currentQueueIndex += 1
+        }
+        
+        // Save previous track to history
+        if let previous = currentTrack {
+            playbackHistory.append(previous)
+        }
+        
+        // Update current track
+        currentTrack = track
+        currentTime = 0
+        
+        // Switch to pre-loaded stream (gapless)
+        let success = audioEngine.switchToPreloadedTrack(volume: Float(isMuted ? 0 : volume))
+        
+        if !success {
+            Logger.warning("Gapless switch failed, falling back to normal load")
+            // Fallback: load and play normally
+            guard audioEngine.load(url: track.url) else {
+                Logger.error("Failed to load track: \(track.title)")
+                return
+            }
+            audioEngine.setVolume(Float(isMuted ? 0 : volume))
+            audioEngine.play()
+        }
+        
+        duration = audioEngine.getDuration()
+        isPlaying = true
+        startPositionTimer()
+        
+        // Reset gapless state and prepare next track
+        isNextTrackPreloaded = false
+        nextTrack = nil
+        prepareNextTrackForGapless()
+        
+        // Update play count
+        updatePlayCount(for: track)
+        
+        Logger.info("Gapless transition complete: \(track.title)")
+    }
+    
+    /// Prepare the next track for gapless playback
+    private func prepareNextTrackForGapless() {
+        // Determine what the next track will be
+        let nextIndex = getNextTrackIndex()
+        
+        guard let index = nextIndex, index >= 0 && index < queue.count else {
+            // No next track available
+            nextTrack = nil
+            isNextTrackPreloaded = false
+            return
+        }
+        
+        nextTrack = queue[index]
+        Logger.debug("Identified next track for gapless: \(nextTrack?.title ?? "unknown")")
+    }
+    
+    /// Get the index of the next track that will play
+    private func getNextTrackIndex() -> Int? {
+        guard !queue.isEmpty else { return nil }
+        
+        if isShuffleEnabled {
+            // Find next unplayed track in shuffle mode
+            return findNextUnplayedShuffleIndex()
+        } else {
+            // Regular mode
+            if currentQueueIndex < queue.count - 1 {
+                return currentQueueIndex + 1
+            } else if repeatMode == .all {
+                return 0
+            } else {
+                return nil
+            }
+        }
+    }
+    
+    /// Pre-load the next track when approaching the end of current track
+    private func preloadNextTrack() {
+        guard let track = nextTrack, !isNextTrackPreloaded else { return }
+        
+        Logger.info("Pre-loading next track for gapless: \(track.title)")
+        
+        // Pre-load using BASS engine's dual-stream capability
+        let success = audioEngine.preloadNext(url: track.url)
+        
+        if success {
+            isNextTrackPreloaded = true
+            Logger.debug("Next track pre-loaded successfully")
+        } else {
+            Logger.warning("Failed to pre-load next track")
+            isNextTrackPreloaded = false
+        }
     }
     
     /// Play next track in shuffle mode
@@ -662,6 +809,11 @@ class PlaybackController: ObservableObject {
         isPlaying = false
         shuffledIndices.removeAll()
         shufflePlayedIndices.removeAll()
+        
+        // Clear gapless state
+        nextTrack = nil
+        isNextTrackPreloaded = false
+        audioEngine.clearPreloadedTrack()
     }
     
     func moveQueueItem(from source: Int, to destination: Int) {
@@ -762,6 +914,9 @@ class PlaybackController: ObservableObject {
             
             Logger.info("Shuffle disabled, restored original queue order")
         }
+        
+        // Update gapless state for new queue order
+        prepareNextTrackForGapless()
     }
     
     // MARK: - Favorites
@@ -803,6 +958,9 @@ class PlaybackController: ObservableObject {
             DispatchQueue.main.async {
                 self.currentTime = self.audioEngine.getCurrentTime()
                 
+                // Check for gapless pre-loading (5 seconds or less remaining)
+                self.checkGaplessPreload()
+                
                 // Check for autoplay trigger (20 seconds or less remaining)
                 self.checkAutoplayTrigger()
             }
@@ -817,6 +975,21 @@ class PlaybackController: ObservableObject {
     private func stopPositionTimer() {
         positionUpdateTimer?.invalidate()
         positionUpdateTimer = nil
+    }
+    
+    // MARK: - Gapless Playback
+    
+    /// Check if we should pre-load the next track for gapless playback
+    private func checkGaplessPreload() {
+        guard !isNextTrackPreloaded, nextTrack != nil else { return }
+        
+        let timeRemaining = duration - currentTime
+        
+        // Pre-load when we're within threshold seconds of the end
+        guard timeRemaining > 0 && timeRemaining <= gaplessThreshold else { return }
+        
+        Logger.debug("Gapless pre-load triggered: \(timeRemaining)s remaining")
+        preloadNextTrack()
     }
     
     // MARK: - Autoplay Logic

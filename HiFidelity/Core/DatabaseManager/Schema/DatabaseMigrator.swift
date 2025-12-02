@@ -52,7 +52,13 @@ struct DatabaseMigrator {
             try DatabaseManager.createFTSTables(in: db)
         }
         
-        // Add new migrations here as: migrator.registerMigration("v4_description") { db in ... }
+        // v4: Add statistics update triggers for albums, artists, and genres
+        migrator.registerMigration("v4_statistics_update_triggers") { db in
+            Logger.info("Creating statistics update triggers...")
+            try DatabaseManager.createStatisticsUpdateTriggers(in: db)
+        }
+        
+        // Add new migrations here as: migrator.registerMigration("v5_description") { db in ... }
         
         return migrator
     }

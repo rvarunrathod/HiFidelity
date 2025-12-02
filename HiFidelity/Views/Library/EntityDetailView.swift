@@ -120,7 +120,12 @@ struct EntityDetailView: View {
     }
     
     private func playTrack(_ track: Track) {
-        playback.play(track: track)
+        guard let trackIndex = tracks.firstIndex(where: { $0.id == track.id }) else {
+            playback.playTracks([track], startingAt: 0)
+            return
+        }
+        
+        playback.playTracks(tracks, startingAt: trackIndex)
     }
     
     private func playAll() {
@@ -128,9 +133,7 @@ struct EntityDetailView: View {
     }
     
     private func shuffleAll() {
-        let shuffled = tracks.shuffled()
-        guard let firstTrack = shuffled.first else { return }
-        playback.play(track: firstTrack)
+        playback.playTracksShuffled(tracks)
     }
     
     private func calculateTotalDuration() -> Double {

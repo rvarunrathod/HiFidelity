@@ -198,13 +198,7 @@ extension DatabaseManager {
             throw DatabaseError.invalidTrackId
         }
         
-        // Update entity statistics
-        try DatabaseManager.updateEntityStatistics(
-            in: db,
-            albumId: mutableTrack.albumId,
-            artistId: mutableTrack.artistId,
-            genreId: mutableTrack.genreId
-        )
+        // Note: Statistics are automatically updated by database triggers
         
         Logger.info("Added new track: \(mutableTrack.title) (ID: \(trackId))")
         
@@ -217,11 +211,6 @@ extension DatabaseManager {
     /// Process an updated track with normalized data
     private func processUpdatedTrack(_ track: Track, metadata: TrackMetadata, in db: Database) throws {
         var mutableTrack = track
-        
-        // Get old entity IDs before updating
-        let oldAlbumId = mutableTrack.albumId
-        let oldArtistId = mutableTrack.artistId
-        let oldGenreId = mutableTrack.genreId
         
         // Determine where to store artwork based on album validity
         let hasValidAlbum = !track.album.isEmpty && track.album != "Unknown Album"
@@ -285,24 +274,8 @@ extension DatabaseManager {
             throw DatabaseError.invalidTrackId
         }
         
-        // Update statistics for old entities (if they changed)
-        if oldAlbumId != mutableTrack.albumId {
-            try DatabaseManager.updateEntityStatistics(in: db, albumId: oldAlbumId, artistId: nil, genreId: nil)
-        }
-        if oldArtistId != mutableTrack.artistId {
-            try DatabaseManager.updateEntityStatistics(in: db, albumId: nil, artistId: oldArtistId, genreId: nil)
-        }
-        if oldGenreId != mutableTrack.genreId {
-            try DatabaseManager.updateEntityStatistics(in: db, albumId: nil, artistId: nil, genreId: oldGenreId)
-        }
-        
-        // Update statistics for new entities
-        try DatabaseManager.updateEntityStatistics(
-            in: db,
-            albumId: mutableTrack.albumId,
-            artistId: mutableTrack.artistId,
-            genreId: mutableTrack.genreId
-        )
+        // Note: Statistics are automatically updated by database triggers
+        // The triggers handle both old and new entity statistics when IDs change
         
         Logger.info("Updated track: \(mutableTrack.title) (ID: \(trackId))")
     }

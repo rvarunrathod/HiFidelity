@@ -317,35 +317,15 @@ extension DatabaseManager {
                 Logger.info("Removing track that no longer exists: \(track.url.lastPathComponent)")
             }
             
-            // Collect entity IDs for statistics update
-            let affectedAlbumIds = Set(tracksToRemove.compactMap { $0.albumId })
-            let affectedArtistIds = Set(tracksToRemove.compactMap { $0.artistId })
-            let affectedGenreIds = Set(tracksToRemove.compactMap { $0.genreId })
-            
-            // Delete tracks in batch - database triggers will automatically cleanup orphaned entities
-            let deletedCount = try await dbQueue.write { [affectedAlbumIds, affectedArtistIds, affectedGenreIds] db in
-                // Delete the tracks (triggers will auto-cleanup orphans)
+            // Delete tracks in batch - database triggers will automatically cleanup orphaned entities and update statistics
+            let deletedCount = try await dbQueue.write { db in
+                // Delete the tracks (triggers will auto-cleanup orphans and update statistics)
                 let deleted = try Track
                     .filter(trackIdsToRemove.contains(Track.Columns.trackId))
                     .deleteAll(db)
                 
-                // Update statistics for remaining entities
-                for albumId in affectedAlbumIds {
-                    // Check if album still exists (might have been auto-deleted by trigger)
-                    if try Album.fetchOne(db, id: albumId) != nil {
-                        try DatabaseManager.updateAlbumStatistics(in: db, albumId: albumId)
-                    }
-                }
-                for artistId in affectedArtistIds {
-                    if try Artist.fetchOne(db, id: artistId) != nil {
-                        try DatabaseManager.updateArtistStatistics(in: db, artistId: artistId)
-                    }
-                }
-                for genreId in affectedGenreIds {
-                    if try Genre.fetchOne(db, id: genreId) != nil {
-                        try DatabaseManager.updateGenreStatistics(in: db, genreId: genreId)
-                    }
-                }
+                // Note: Statistics are automatically updated by database triggers
+                // Orphaned entities (albums/artists/genres with no tracks) are auto-deleted by triggers
                 
                 return deleted
             }

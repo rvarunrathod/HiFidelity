@@ -241,7 +241,12 @@ struct TracksTabView: View {
     }
     
     private func playTrack(_ track: Track) {
-        playback.playTracks([track], startingAt: 0)
+        guard let trackIndex = sortedTracks.firstIndex(where: { $0.id == track.id }) else {
+            playback.playTracks([track], startingAt: 0)
+            return
+        }
+        
+        playback.playTracks(sortedTracks, startingAt: trackIndex)
     }
     
     // MARK: - Data Loading

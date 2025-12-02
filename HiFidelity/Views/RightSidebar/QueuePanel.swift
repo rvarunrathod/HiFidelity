@@ -30,6 +30,7 @@ struct QueuePanel: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(.bottom, 90)
         .background(Color(nsColor: .windowBackgroundColor))
     }
     

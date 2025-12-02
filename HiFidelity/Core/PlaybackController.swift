@@ -48,6 +48,12 @@ class PlaybackController: ObservableObject {
     @Published var playbackHistory: [Track] = []
     @Published var currentQueueIndex: Int = -1
     
+    // Shuffle state
+    private var originalQueue: [Track] = []
+    private var originalQueueIndex: Int = -1
+    private var shuffledIndices: [Int] = []
+    private var shufflePlayedIndices: Set<Int> = []
+    
     // Autoplay
     @Published var isAutoplayEnabled: Bool = false {
         didSet {
@@ -250,7 +256,7 @@ class PlaybackController: ObservableObject {
         }
         
         if isShuffleEnabled {
-            playRandomTrack()
+            playNextShuffled()
         } else if currentQueueIndex < queue.count - 1 {
             currentQueueIndex += 1
             playTrackAtIndex(currentQueueIndex)
@@ -350,19 +356,61 @@ class PlaybackController: ObservableObject {
     
     func play(track: Track) {
         if let index = queue.firstIndex(where: { $0.id == track.id }) {
+            currentQueueIndex = index
             playTrackAtIndex(index)
+            
+            // Mark as played in shuffle mode
+            if isShuffleEnabled && index < shuffledIndices.count {
+                shufflePlayedIndices.insert(shuffledIndices[index])
+            }
         } else {
             // Add to queue and play
             queue.append(track)
+            if isShuffleEnabled && !originalQueue.isEmpty {
+                originalQueue.append(track)
+            }
             currentQueueIndex = queue.count - 1
             playTrackAtIndex(currentQueueIndex)
         }
     }
     
     func playTracks(_ tracks: [Track], startingAt index: Int = 0) {
-        queue = tracks
-        currentQueueIndex = index
-        playTrackAtIndex(index)
+        // Store original queue for shuffle/unshuffle
+        originalQueue = tracks
+        originalQueueIndex = index
+        
+        if isShuffleEnabled {
+            // Create shuffled queue starting from the selected track
+            createShuffledQueue(startingFrom: index)
+        } else {
+            queue = tracks
+            currentQueueIndex = index
+        }
+        
+        playTrackAtIndex(currentQueueIndex)
+    }
+    
+    /// Play tracks in shuffled order (like Apple Music shuffle play button)
+    func playTracksShuffled(_ tracks: [Track]) {
+        guard !tracks.isEmpty else { return }
+        
+        // Store original queue
+        originalQueue = tracks
+        originalQueueIndex = 0
+        
+        // Enable shuffle if not already enabled
+        let wasShuffleEnabled = isShuffleEnabled
+        isShuffleEnabled = true
+        
+        // Create shuffled queue starting from first track
+        createShuffledQueue(startingFrom: 0)
+        
+        // Play first track in shuffled queue
+        playTrackAtIndex(0)
+        
+        if !wasShuffleEnabled {
+            Logger.info("Shuffle play: enabled shuffle and playing \(tracks.count) tracks")
+        }
     }
     
     private func playTrackAtIndex(_ index: Int) {
@@ -382,21 +430,112 @@ class PlaybackController: ObservableObject {
         play()
     }
     
-    private func playRandomTrack() {
-        guard !queue.isEmpty else { return }
-        let randomIndex = Int.random(in: 0..<queue.count)
-        currentQueueIndex = randomIndex
-        playTrackAtIndex(randomIndex)
+    /// Play next track in shuffle mode
+    private func playNextShuffled() {
+        guard !shuffledIndices.isEmpty else {
+            // No shuffle data, fallback to regular next
+            if currentQueueIndex < queue.count - 1 {
+                currentQueueIndex += 1
+                playTrackAtIndex(currentQueueIndex)
+            } else if repeatMode == .all {
+                // Reset shuffle and start over
+                resetShuffleState()
+                currentQueueIndex = 0
+                playTrackAtIndex(currentQueueIndex)
+            } else if repeatMode == .off && isAutoplayEnabled {
+                Task {
+                    await handleQueueEnd()
+                }
+            }
+            return
+        }
+        
+        // Mark current index as played
+        if currentQueueIndex >= 0 && currentQueueIndex < shuffledIndices.count {
+            shufflePlayedIndices.insert(shuffledIndices[currentQueueIndex])
+        }
+        
+        // Find next unplayed track
+        if let nextUnplayedIndex = findNextUnplayedShuffleIndex() {
+            currentQueueIndex = nextUnplayedIndex
+            playTrackAtIndex(currentQueueIndex)
+        } else {
+            // All tracks played
+            if repeatMode == .all {
+                // Reset and start over
+                resetShuffleState()
+                currentQueueIndex = 0
+                playTrackAtIndex(currentQueueIndex)
+            } else if repeatMode == .off && isAutoplayEnabled {
+                Task {
+                    await handleQueueEnd()
+                }
+            }
+        }
+    }
+    
+    /// Find the next unplayed track in shuffle mode
+    private func findNextUnplayedShuffleIndex() -> Int? {
+        for (queueIndex, originalIndex) in shuffledIndices.enumerated() {
+            if queueIndex > currentQueueIndex && !shufflePlayedIndices.contains(originalIndex) {
+                return queueIndex
+            }
+        }
+        return nil
+    }
+    
+    /// Reset shuffle state for repeat all
+    private func resetShuffleState() {
+        shufflePlayedIndices.removeAll()
+        // Re-shuffle the indices
+        if !originalQueue.isEmpty {
+            createShuffledQueue(startingFrom: 0)
+        }
+    }
+    
+    /// Create a shuffled queue starting from a specific track
+    private func createShuffledQueue(startingFrom index: Int) {
+        guard index >= 0 && index < originalQueue.count else { return }
+        
+        // Create array of indices
+        var indices = Array(0..<originalQueue.count)
+        
+        // Remove the starting index
+        indices.remove(at: index)
+        
+        // Shuffle remaining indices
+        indices.shuffle()
+        
+        // Put starting index first
+        indices.insert(index, at: 0)
+        
+        // Store shuffled indices mapping
+        shuffledIndices = indices
+        shufflePlayedIndices.removeAll()
+        
+        // Create shuffled queue
+        queue = indices.map { originalQueue[$0] }
+        currentQueueIndex = 0 // Starting track is now at index 0
+        
+        Logger.info("Created shuffled queue with \(queue.count) tracks")
     }
     
     // MARK: - Queue Management
     
     func addToQueue(_ track: Track) {
         queue.append(track)
+        // Also add to original queue if shuffle is enabled
+        if isShuffleEnabled && !originalQueue.isEmpty {
+            originalQueue.append(track)
+        }
     }
     
     func addToQueue(_ tracks: [Track]) {
         queue.append(contentsOf: tracks)
+        // Also add to original queue if shuffle is enabled
+        if isShuffleEnabled && !originalQueue.isEmpty {
+            originalQueue.append(contentsOf: tracks)
+        }
     }
     
     func playNext(_ track: Track) {
@@ -405,6 +544,18 @@ class PlaybackController: ObservableObject {
             queue.insert(track, at: insertIndex)
         } else {
             queue.append(track)
+        }
+        
+        // Update original queue if shuffle is enabled
+        if isShuffleEnabled && !originalQueue.isEmpty {
+            // Find position in original queue and insert there too
+            if let currentOriginalIndex = currentQueueIndex >= 0 && currentQueueIndex < shuffledIndices.count 
+                ? shuffledIndices[currentQueueIndex] : nil {
+                let originalInsertIndex = min(currentOriginalIndex + 1, originalQueue.count)
+                originalQueue.insert(track, at: originalInsertIndex)
+            } else {
+                originalQueue.append(track)
+            }
         }
     }
     
@@ -428,9 +579,13 @@ class PlaybackController: ObservableObject {
     
     func clearQueue() {
         queue.removeAll()
+        originalQueue.removeAll()
         currentQueueIndex = -1
+        originalQueueIndex = -1
         currentTrack = nil
         isPlaying = false
+        shuffledIndices.removeAll()
+        shufflePlayedIndices.removeAll()
     }
     
     func moveQueueItem(from source: Int, to destination: Int) {
@@ -483,16 +638,53 @@ class PlaybackController: ObservableObject {
         isShuffleEnabled.toggle()
         
         if isShuffleEnabled {
-            // Shuffle queue except current track
-            guard currentQueueIndex >= 0 && currentQueueIndex < queue.count else { return }
+            // Enable shuffle mode
+            if !queue.isEmpty {
+                // Save current queue as original if not already saved
+                if originalQueue.isEmpty {
+                    originalQueue = queue
+                    originalQueueIndex = currentQueueIndex
+                }
+                
+                // Find the index of current track in original queue
+                let currentTrackInOriginal: Int
+                if currentQueueIndex >= 0 && currentQueueIndex < queue.count {
+                    let currentTrackId = queue[currentQueueIndex].id
+                    currentTrackInOriginal = originalQueue.firstIndex(where: { $0.id == currentTrackId }) ?? 0
+                } else {
+                    currentTrackInOriginal = 0
+                }
+                
+                // Create shuffled queue starting from current track
+                createShuffledQueue(startingFrom: currentTrackInOriginal)
+            }
             
-            let currentTrack = queue[currentQueueIndex]
-            var remainingTracks = queue
-            remainingTracks.remove(at: currentQueueIndex)
-            remainingTracks.shuffle()
+            Logger.info("Shuffle enabled")
+        } else {
+            // Disable shuffle mode - restore original queue
+            if !originalQueue.isEmpty {
+                // Find current track in original queue
+                let currentTrackId = currentQueueIndex >= 0 && currentQueueIndex < queue.count 
+                    ? queue[currentQueueIndex].id 
+                    : nil
+                
+                // Restore original queue
+                queue = originalQueue
+                
+                // Find current track's position in original queue
+                if let trackId = currentTrackId,
+                   let originalIndex = originalQueue.firstIndex(where: { $0.id == trackId }) {
+                    currentQueueIndex = originalIndex
+                } else {
+                    currentQueueIndex = originalQueueIndex
+                }
+                
+                // Clear shuffle state
+                shuffledIndices.removeAll()
+                shufflePlayedIndices.removeAll()
+            }
             
-            queue = [currentTrack] + remainingTracks
-            currentQueueIndex = 0
+            Logger.info("Shuffle disabled, restored original queue order")
         }
     }
     

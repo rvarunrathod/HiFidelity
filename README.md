@@ -43,6 +43,7 @@ HiFidelity is a native macOS music player built for audiophiles and music enthus
   - **Lossless & Hi-Res**: FLAC, OGA, WAV, AIFF, AIF, APE, WV, TTA, DFF, DSF  
   - **Compressed**: MP3, MP2, AAC, OGG, OPUS, M4A, M4B, M4P, MP4, M4V, MPC  
   - **Specialized**: CAF, WEBM, SPX
+- **Gapless Playback**: Seamless transitions between tracks with no silence or interruption
 - Built-in equalizer with customizable presets
 - Browse by tracks, albums, artists, or genres
 - **Smart Recommendations**: Auto play functionality, you don't have to think what to play next

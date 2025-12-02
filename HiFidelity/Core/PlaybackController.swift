@@ -203,8 +203,18 @@ class PlaybackController: ObservableObject {
     func play() {
         guard let track = currentTrack else { return }
         
+        // If track has ended (currentTime >= duration), restart from beginning
+        if currentTime >= duration && duration > 0 {
+            currentTime = 0
+            guard audioEngine.load(url: track.url) else {
+                Logger.error("Failed to reload track: \(track.title)")
+                return
+            }
+            duration = audioEngine.getDuration()
+            audioEngine.setVolume(Float(isMuted ? 0 : volume))
+        }
         // Load track if not already loaded
-        if !audioEngine.isPlaying() && currentTime == 0 {
+        else if !audioEngine.isPlaying() && currentTime == 0 {
             guard audioEngine.load(url: track.url) else {
                 Logger.error("Failed to load track: \(track.title)")
                 return
@@ -236,12 +246,27 @@ class PlaybackController: ObservableObject {
         Logger.info("Paused")
     }
     
+    func stop() {
+        audioEngine.stop()
+        isPlaying = false
+        stopPositionTimer()
+        Logger.info("Stopped")
+    }
+    
     func togglePlayPause() {
         if isPlaying {
             pause()
         } else {
             play()
         }
+    }
+    
+    /// Stop playback when queue ends (pause instead of stop to keep track loaded for seeking)
+    private func stopPlayback() {
+        audioEngine.pause()
+        isPlaying = false
+        stopPositionTimer()
+        Logger.info("Playback stopped - end of queue")
     }
     
     func next() {
@@ -251,6 +276,9 @@ class PlaybackController: ObservableObject {
                 Task {
                     await handleEmptyQueue()
                 }
+            } else {
+                // No queue and no autoplay - stop playback
+                stopPlayback()
             }
             return
         }
@@ -268,6 +296,9 @@ class PlaybackController: ObservableObject {
             Task {
                 await handleQueueEnd()
             }
+        } else {
+            // Reached end of queue with no repeat and no autoplay - stop playback
+            stopPlayback()
         }
     }
     
@@ -284,13 +315,23 @@ class PlaybackController: ObservableObject {
                 count: 10
             )
             
-            guard !recommendations.isEmpty else { return }
+            guard !recommendations.isEmpty else {
+                // No recommendations available - stop playback
+                await MainActor.run {
+                    stopPlayback()
+                }
+                return
+            }
             
             await MainActor.run {
                 playTracks(recommendations)
             }
         } catch {
             Logger.error("Failed to get recommendations for empty queue: \(error)")
+            // Failed to get recommendations - stop playback
+            await MainActor.run {
+                stopPlayback()
+            }
         }
     }
     
@@ -305,7 +346,13 @@ class PlaybackController: ObservableObject {
                 count: 10
             )
             
-            guard !recommendations.isEmpty else { return }
+            guard !recommendations.isEmpty else {
+                // No recommendations available - stop playback
+                await MainActor.run {
+                    stopPlayback()
+                }
+                return
+            }
             
             await MainActor.run {
                 queue.append(contentsOf: recommendations)
@@ -317,6 +364,10 @@ class PlaybackController: ObservableObject {
             }
         } catch {
             Logger.error("Failed to get recommendations for queue end: \(error)")
+            // Failed to get recommendations - stop playback
+            await MainActor.run {
+                stopPlayback()
+            }
         }
     }
     
@@ -333,9 +384,28 @@ class PlaybackController: ObservableObject {
     }
     
     func seek(to time: Double) {
-        guard audioEngine.seek(to: time) else {
-            Logger.error("Failed to seek to \(time)")
-            return
+        // If track is not loaded or seek fails, try to reload and seek
+        if !audioEngine.seek(to: time) {
+            // Try to reload the track if we have one
+            guard let track = currentTrack else {
+                Logger.error("Failed to seek to \(time) - no track loaded")
+                return
+            }
+            
+            Logger.info("Track not loaded, reloading for seek...")
+            guard audioEngine.load(url: track.url) else {
+                Logger.error("Failed to reload track for seeking")
+                return
+            }
+            
+            duration = audioEngine.getDuration()
+            audioEngine.setVolume(Float(isMuted ? 0 : volume))
+            
+            // Try seeking again
+            guard audioEngine.seek(to: time) else {
+                Logger.error("Failed to seek to \(time) after reload")
+                return
+            }
         }
         
         currentTime = time
@@ -446,6 +516,9 @@ class PlaybackController: ObservableObject {
                 Task {
                     await handleQueueEnd()
                 }
+            } else {
+                // Reached end with no repeat and no autoplay - stop playback
+                stopPlayback()
             }
             return
         }
@@ -470,6 +543,9 @@ class PlaybackController: ObservableObject {
                 Task {
                     await handleQueueEnd()
                 }
+            } else {
+                // Reached end with no repeat and no autoplay - stop playback
+                stopPlayback()
             }
         }
     }

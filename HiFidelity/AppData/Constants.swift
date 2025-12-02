@@ -78,8 +78,8 @@ enum About {
     static let appWebsite = "https://github.com/rvarunrathod/HiFidelity"
     static let appWiki = "https://github.com/rvarunrathod/HiFidelity/wiki"
     static let sponsor = "https://github.com/sponsors/rvarunrathod"
-    static let appVersion = "1.0.2"
-    static let appBuild = "102"
+    static let appVersion = "1.0.3"
+    static let appBuild = "103"
 }
 
 

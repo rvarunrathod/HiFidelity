@@ -5,6 +5,32 @@
         <description>Updates for HiFidelity - High-Fidelity Music Player</description>
         <language>en</language>
         <item>
+            <title>Version 1.0.3</title>
+            <pubDate>Tue, 02 Dec 2025 19:59:11 +0530</pubDate>
+            <sparkle:version>103</sparkle:version>
+            <sparkle:shortVersionString>1.0.3</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <enclosure
+                url="https://github.com/rvarunrathod/HiFidelity/releases/download/v1.0.3/HiFidelity-1.0.3-Universal.dmg"
+                sparkle:edSignature="RcXqsTVluHhfpPRkkO3Uvrr/tPkcJgU6wnmnuV6Tg6wv44niO8GRB2JabC7KYzp1CQTgOL7aGT91IRc2ctMGDA=="
+                length="9876641"
+                type="application/octet-stream"
+            />
+            <description><![CDATA[
+                <h2>Improvement</h2>
+<ul>
+    <li>Added gapless playback for seamless track transitions</li>
+</ul>
+<h2>Fixes</h2>
+<ul>
+    <li>Shuffle functionality now works properly across library and playlists</li>
+    <li>Seek now works correctly after a song ends</li>
+    <li>Removing folders now properly recalculates album, artist, and genre statistics</li>
+</ul>
+<p><a href="https://github.com/rvarunrathod/HiFidelity/compare/v1.0.2...v1.0.3">Full Changelog</a></p>
+            ]]></description>
+        </item>
+        <item>
         <title>Version 1.0.2</title>
             <pubDate>Mon, 01 Dec 2025 09:05:20 +0530</pubDate>
             <sparkle:version>102</sparkle:version>

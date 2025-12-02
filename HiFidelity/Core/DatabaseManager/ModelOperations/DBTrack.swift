@@ -198,13 +198,7 @@ extension DatabaseManager {
             throw DatabaseError.invalidTrackId
         }
         
-        // Update entity statistics
-        try DatabaseManager.updateEntityStatistics(
-            in: db,
-            albumId: mutableTrack.albumId,
-            artistId: mutableTrack.artistId,
-            genreId: mutableTrack.genreId
-        )
+        // Note: Statistics are automatically updated by database triggers
         
         Logger.info("Added new track: \(mutableTrack.title) (ID: \(trackId))")
         
@@ -285,24 +279,8 @@ extension DatabaseManager {
             throw DatabaseError.invalidTrackId
         }
         
-        // Update statistics for old entities (if they changed)
-        if oldAlbumId != mutableTrack.albumId {
-            try DatabaseManager.updateEntityStatistics(in: db, albumId: oldAlbumId, artistId: nil, genreId: nil)
-        }
-        if oldArtistId != mutableTrack.artistId {
-            try DatabaseManager.updateEntityStatistics(in: db, albumId: nil, artistId: oldArtistId, genreId: nil)
-        }
-        if oldGenreId != mutableTrack.genreId {
-            try DatabaseManager.updateEntityStatistics(in: db, albumId: nil, artistId: nil, genreId: oldGenreId)
-        }
-        
-        // Update statistics for new entities
-        try DatabaseManager.updateEntityStatistics(
-            in: db,
-            albumId: mutableTrack.albumId,
-            artistId: mutableTrack.artistId,
-            genreId: mutableTrack.genreId
-        )
+        // Note: Statistics are automatically updated by database triggers
+        // The triggers handle both old and new entity statistics when IDs change
         
         Logger.info("Updated track: \(mutableTrack.title) (ID: \(trackId))")
     }

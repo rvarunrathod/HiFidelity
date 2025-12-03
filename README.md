@@ -78,18 +78,19 @@
 
 ## 📥 Installation
 
-  ### 🍺 Install via Homebrew (Recommended)
-  
-  ```bash
-  brew tap rvarunrathod/tap
-  brew install --cask rvarunrathod/tap/hifidelity
-  ```
-  ###  Download for macOS
-  
-  - You can download the latest signed macOS build from the Releases page:
-  - **[Download Latest Release](https://github.com/rvarunrathod/HiFidelity/releases/latest)**
-  - After downloading, move **HiFidelity.app** to your **Applications** folder.
+#### 🍺 Install via Homebrew (Recommended)
 
+```bash
+brew tap rvarunrathod/tap
+brew install --cask rvarunrathod/tap/hifidelity
+```
+
+#### Download for macOS
+  
+- You can download the latest signed macOS build from the Releases page:
+- **[Download Latest Release](https://github.com/rvarunrathod/HiFidelity/releases/latest)**
+- After downloading, move **HiFidelity.app** to your **Applications** folder.
+  
 #### First Launch?
 
 1. Open **Settings → Library** Add folders containing your music files.

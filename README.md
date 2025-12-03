@@ -54,21 +54,21 @@
 
 #### Library Views
 <div align="center">
-  <img src="docs/images/Album-view.png" alt="Album View" width="500" style="margin: 10px;">
-  <img src="docs/images/Home-page-artists.png" alt="Artists View" width="500" style="margin: 10px;">
-  <img src="docs/images/Home-page-tracks.png" alt="Tracks View" width="500" style="margin: 10px;">
+  <img src="docs/images/Album-view.png" alt="Album View" width="600" style="margin: 10px;">
+  <img src="docs/images/Home-page-artists.png" alt="Artists View" width="600" style="margin: 10px;">
+  <img src="docs/images/Home-page-tracks.png" alt="Tracks View" width="600" style="margin: 10px;">
 </div>
 
 #### Audio Features
 <div align="center">
-  <img src="docs/images/Equalizer.png" alt="Equalizer"width="500" style="margin: 10px;">
+  <img src="docs/images/Equalizer.png" alt="Equalizer" width="600" style="margin: 10px;">
 </div>
 
 #### Smart Features
 <div align="center">
-  <img src="docs/images/Autoplay-queue.png" alt="Autoplay Queue" height="350" style="margin: 10px;">
-  <img src="docs/images/Lyrics%20support.png" alt="Lyrics Support" height="350" style="margin: 10px;">
-  <img src="docs/images/Search-view.png" alt="Search View" height="500" width="500" style="margin: 10px;">
+  <img src="docs/images/Autoplay-queue.png" alt="Autoplay Queue" height="400" style="margin: 10px;">
+  <img src="docs/images/Lyrics%20support.png" alt="Lyrics Support" height="400" style="margin: 10px;">
+  <img src="docs/images/Search-view.png" alt="Search View" height="500" width="600" style="margin: 10px;">
 </div>
 
 ## 🛠 Requirements

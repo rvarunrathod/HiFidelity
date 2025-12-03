@@ -8,38 +8,26 @@
 </div>
 <br/><br/>
 
-### Or install via Homebrew
+<div align="center">
+<a href="https://github.com/rvarunrathod/HiFidelity/releases"><img alt="GitHub Downloads (all assets, all releases)" src="https://img.shields.io/github/downloads/rvarunrathod/HiFidelity/total?label=Downloads&style=flat-square&color=ba68c8"></a>
+<a href="https://github.com/rvarunrathod/HiFidelity/stargazers"><img alt="GitHub stars" src="https://img.shields.io/github/stars/rvarunrathod/HiFidelity?label=Stars&style=flat-square&color=f9a825"></a>
+<a href="https://github.com/rvarunrathod/HiFidelity/blob/main/LICENSE"><img alt="License" src="https://img.shields.io/github/license/rvarunrathod/HiFidelity?label=License&style=flat-square&color=388e3c"></a>
+<a href="https://github.com/rvarunrathod/HiFidelity/releases/latest"><img alt="Latest Release" src="https://img.shields.io/github/v/release/rvarunrathod/HiFidelity?label=Latest%20Release&style=flat-square&color=00796b"></a>
+<a href="https://github.com/rvarunrathod/HiFidelity/"><img src="https://img.shields.io/badge/platform-macOS-blue.svg?label=Platform&style=flat-square&logo=apple" alt="Platform"/></a>
+  
+</div>
 
-```bash
-brew tap rvarunrathod/tap
-brew install --cask rvarunrathod/tap/hifidelity
-```
 
-
-****
-
-## ⚠️ Note: This app is not malware
-> How to fix it 
-
-1. Open System **Settings**
-2. Go to **Privacy & Security**
-3. Scroll down until you see a message saying: “HiFidelity was blocked because it is not from an identified developer.”
-4. Click **Allow Anyway**
-5. Open HiFidelity again
-6. When macOS asks, click Open
-
-****
-
-HiFidelity is a native macOS music player built for audiophiles and music enthusiasts who want complete control over their music library without relying on streaming services or cloud storage.
 
 ![Home View - Albums](docs/images/Home-page-albums.png)
+
 
 ---
 
 ## ✨ Features
 
 - Powered by the BASS (un4seen) audio library for professional-grade audio quality and TagLib for meta-data reading
-- Support for 30+ audio formats including lossless and high-resolution files
+- Support for 10+ audio formats including lossless and high-resolution files
   - **Lossless & Hi-Res**: FLAC, OGA, WAV, AIFF, AIF, APE, WV, TTA, DFF, DSF  
   - **Compressed**: MP3, MP2, AAC, OGG, OPUS, M4A, M4B, M4P, MP4, M4V, MPC  
   - **Specialized**: CAF, WEBM, SPX
@@ -53,12 +41,13 @@ HiFidelity is a native macOS music player built for audiophiles and music enthus
 - **Favorites**: Mark and organize your favorite tracks
 - Menu bar controls and Now Playing info
 
+## 🔮 Upcoming Features
 
-#### First Launch?
-
-1. Open **Settings → Library** Add folders containing your music files.
-2. HiFidelity will automatically scan and import your music.
-3. Start enjoying your music collection!
+- ReplayGain and volume normalization 
+- Automatic scanning and updating of the music library 
+- Audio visualizers  (waveform / spectrum)
+- A compact Mini Player mode 
+- ... 
 
 ## 📷 Screenshots
 
@@ -81,26 +70,36 @@ HiFidelity is a native macOS music player built for audiophiles and music enthus
   <img src="docs/images/Search-view.png" alt="Search View" height="500" width="500" style="margin: 10px;">
 </div>
 
-### 🛠 Requirements
+## 🛠 Requirements
 
 - **macOS 14.0** (Sonoma) or later
 - Apple Silicon or Intel Macs 
 
+## 📥 Installation
 
+  ### 🍺 Install via Homebrew (Recommended)
+  
+  ```bash
+  brew tap rvarunrathod/tap
+  brew install --cask rvarunrathod/tap/hifidelity
+  ```
+  ###  Download for macOS
+  
+  - You can download the latest signed macOS build from the Releases page:
+  - **[Download Latest Release](https://github.com/rvarunrathod/HiFidelity/releases/latest)**
+  - After downloading, move **HiFidelity.app** to your **Applications** folder.
 
-### ⚡ Development 
+#### First Launch?
 
-#### From Source
+1. Open **Settings → Library** Add folders containing your music files.
+2. HiFidelity will automatically scan and import your music.
+3. Start enjoying your music collection!
 
-1. Clone the repository:
-```bash
-git clone https://github.com/rvarunrathod/HiFidelity.git
-cd HiFidelity
-```
+## ⚡ Development 
 
-2. Open `HiFidelity.xcodeproj` in Xcode 15 or later
-
-3. Build and run (⌘R)
+- Make sure you’re running macOS 14 or later
+- Clone the repository
+- Open `HiFidelity.xcodeproj` in Xcode 15 or later
 
 ---
 
@@ -120,8 +119,6 @@ cd HiFidelity
 - [**Petrichor**](https://github.com/kushalpandya/Petrichora): Learned lot from this code
 
 ---
-
-**Built with ❤️ for music lovers who value quality, privacy, and control**
-
-[Website](https://rvarunrathod.github.io/HiFidelity) • [Wiki](https://github.com/rvarunrathod/HiFidelity/wiki) • [Issues](https://github.com/rvarunrathod/HiFidelity/issues)
-
+<div align="center">
+<h3>⭐ If you like this project, please give it a star!</h3>
+</div>

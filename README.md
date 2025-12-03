@@ -44,7 +44,8 @@
 ## 🔮 Upcoming Features
 
 - ReplayGain and volume normalization 
-- Automatic scanning and updating of the music library 
+- Automatic scanning and updating of the music library
+- let user change audio output device from UI
 - Audio visualizers  (waveform / spectrum)
 - A compact Mini Player mode 
 - ... 

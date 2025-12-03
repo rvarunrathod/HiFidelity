@@ -77,17 +77,18 @@
 
 ## 📥 Installation
 
-  ### 🍺 Install via Homebrew (Recommended)
+#### 🍺 Install via Homebrew (Recommended)
+
+```bash
+brew tap rvarunrathod/tap
+brew install --cask rvarunrathod/tap/hifidelity
+```
+
+#### Download for macOS
   
-  ```bash
-  brew tap rvarunrathod/tap
-  brew install --cask rvarunrathod/tap/hifidelity
-  ```
-  ###  Download for macOS
-  
-  - You can download the latest signed macOS build from the Releases page:
-  - **[Download Latest Release](https://github.com/rvarunrathod/HiFidelity/releases/latest)**
-  - After downloading, move **HiFidelity.app** to your **Applications** folder.
+- You can download the latest signed macOS build from the Releases page:
+- **[Download Latest Release](https://github.com/rvarunrathod/HiFidelity/releases/latest)**
+- After downloading, move **HiFidelity.app** to your **Applications** folder.
 
 #### First Launch?
 

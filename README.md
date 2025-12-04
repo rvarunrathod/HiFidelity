@@ -8,15 +8,26 @@
 </div>
 <br/><br/>
 
-<div align="center">
-<a href="https://github.com/rvarunrathod/HiFidelity/releases"><img alt="GitHub Downloads (all assets, all releases)" src="https://img.shields.io/github/downloads/rvarunrathod/HiFidelity/total?label=Downloads&style=flat-square&color=ba68c8"></a>
-<a href="https://github.com/rvarunrathod/HiFidelity/stargazers"><img alt="GitHub stars" src="https://img.shields.io/github/stars/rvarunrathod/HiFidelity?label=Stars&style=flat-square&color=f9a825"></a>
-<a href="https://github.com/rvarunrathod/HiFidelity/blob/main/LICENSE"><img alt="License" src="https://img.shields.io/github/license/rvarunrathod/HiFidelity?label=License&style=flat-square&color=388e3c"></a>
-<a href="https://github.com/rvarunrathod/HiFidelity/releases/latest"><img alt="Latest Release" src="https://img.shields.io/github/v/release/rvarunrathod/HiFidelity?label=Latest%20Release&style=flat-square&color=00796b"></a>
-<a href="https://github.com/rvarunrathod/HiFidelity/"><img src="https://img.shields.io/badge/platform-macOS-blue.svg?label=Platform&style=flat-square&logo=apple" alt="Platform"/></a>
-  
-</div>
+<p align="center">
+  <a href="https://github.com/rvarunrathod/HiFidelity/releases">
+    <img alt="GitHub Downloads (all assets, all releases)" src="https://img.shields.io/github/downloads/rvarunrathod/HiFidelity/total?label=Downloads&style=flat-square&color=blue">
+  </a>
+  <a href="https://github.com/rvarunrathod/HiFidelity/blob/main/LICENSE">
+    <img alt="License" src="https://img.shields.io/github/license/rvarunrathod/HiFidelity?label=License&style=flat-square&color=00796b">
+  </a>
+  <a href="https://github.com/rvarunrathod/HiFidelity/releases/latest">
+    <img alt="Latest Release" src="https://img.shields.io/github/v/release/rvarunrathod/HiFidelity?label=Latest%20Release&style=flat-square&color=00796b">
+  </a>
+  <a href="https://github.com/rvarunrathod/HiFidelity/">
+    <img src="https://img.shields.io/badge/platform-macOS-blue.svg?label=Platform&style=flat-square&logo=apple" alt="Platform"/>
+  </a>
+</p>
 
+<p align="center">
+  <a href="https://github.com/rvarunrathod/HiFidelity/stargazers">
+    <img src="https://img.shields.io/badge/⭐%20Give%20a%20Star-Support%20the%20project-orange?style=for-the-badge" alt="Give a Star">
+  </a>
+</p>
 
 
 ![Home View - Albums](docs/images/Home-page-albums.png)
@@ -121,6 +132,7 @@ brew install --cask rvarunrathod/tap/hifidelity
 - [**Petrichor**](https://github.com/kushalpandya/Petrichora): Learned lot from this code
 
 ---
+
 <div align="center">
-<h3>⭐ If you like this project, please give it a star!</h3>
+<h3>Built with ❤️ for music lovers who value quality, privacy, and control</h3>
 </div>

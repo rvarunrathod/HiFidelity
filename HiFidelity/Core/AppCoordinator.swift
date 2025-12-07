@@ -33,12 +33,36 @@ class AppCoordinator: ObservableObject {
         // Start queue persistence manager
         await QueuePersistenceManager.shared.start()
         
+        // Start folder monitoring if enabled
+        await startFolderMonitoring()
+        
         Logger.info("Application initialization complete")
+    }
+    
+    /// Start folder monitoring if enabled in preferences
+    private func startFolderMonitoring() async {
+        let enableFolderWatcher = UserDefaults.standard.bool(forKey: "enableFolderWatcher")
+        
+        // Default to true if not set
+        let shouldStart = UserDefaults.standard.object(forKey: "enableFolderWatcher") == nil ? true : enableFolderWatcher
+        
+        if shouldStart {
+            await MainActor.run {
+                FolderWatcherService.shared.startWatching(databaseManager: DatabaseManager.shared)
+            }
+        } else {
+            Logger.info("Folder monitoring disabled in preferences")
+        }
     }
     
     /// Cleanup on app termination
     func cleanup() async {
         Logger.info("Cleaning up application resources...")
+        
+        // Stop folder monitoring
+        await MainActor.run {
+            FolderWatcherService.shared.stopWatching()
+        }
         
         // Stop queue persistence and save final state
         await QueuePersistenceManager.shared.stop()

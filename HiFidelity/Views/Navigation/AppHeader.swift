@@ -123,9 +123,13 @@ struct AppHeader: View {
                     showRightPanel.toggle()
                 }
             }
+
+            // GitHub link
+            GitHubButton()
             
             // Refresh library button
             RefreshButton()
+                .help("Refresh Library")
             
             // Notifications
             NotificationTray()
@@ -188,8 +192,7 @@ private struct RefreshButton: View {
                 )
         }
         .buttonStyle(PlainHoverButtonStyle())
-        .disabled(isRefreshing)
-        .help("Refresh library")
+        .disabled(isRefreshing)   
     }
     
     private func performRefresh() {
@@ -231,6 +234,40 @@ private struct ToggleButton: View {
                 )
         }
         .buttonStyle(PlainHoverButtonStyle())
+    }
+}
+
+/// Enhanced GitHub button with hover effects
+private struct GitHubButton: View {
+    @State private var isHovered = false
+    @ObservedObject var theme = AppTheme.shared
+    
+    var body: some View {
+        Button {
+            if let url = URL(string: About.appWebsite) {
+                NSWorkspace.shared.open(url)
+            }
+        } label: {
+            Image("github-icon")
+                .renderingMode(.template)
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: 18, height: 18)
+                .foregroundColor(isHovered ? .white : theme.currentTheme.primaryColor)
+                .frame(width: 36, height: 36)
+                .background(
+                    Circle()
+                        .fill(isHovered ? theme.currentTheme.primaryColor : theme.currentTheme.primaryColor.opacity(0.15))
+                )
+                .scaleEffect(isHovered ? 1.08 : 1.0)
+                .shadow(color: theme.currentTheme.primaryColor.opacity(isHovered ? 0.3 : 0.1), radius: isHovered ? 6 : 3)
+                .animation(.easeInOut(duration: 0.2), value: isHovered)
+        }
+        .buttonStyle(.plain)
+        .onHover { hovering in
+            isHovered = hovering
+        }
+        .help("View on GitHub")
     }
 }
 

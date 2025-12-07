@@ -34,7 +34,7 @@ struct ProgressBarControl: View {
                 // Scrubber handle
                 if isHovering || isDragging {
                     scrubberHandle
-                        .offset(x: geometry.size.width * currentProgress - 8, y: -2)
+                        .offset(x: geometry.size.width * currentProgress - 8)
                         .transition(.scale.combined(with: .opacity))
                 }
             }

@@ -10,17 +10,24 @@ import SwiftUI
 struct LibrarySettings: View {
     @EnvironmentObject var databaseManager: DatabaseManager
     @ObservedObject var theme = AppTheme.shared
+    @StateObject private var folderWatcher = FolderWatcherService.shared
     
     @State private var folders: [Folder] = []
     @State private var showRemoveConfirmation = false
     @State private var folderToRemove: Folder?
     @State private var showRemoveAllConfirmation = false
     @State private var isLoading = false
+    @AppStorage("enableFolderWatcher") private var enableFolderWatcher = true
     
     var body: some View {
         VStack(spacing: 0) {
             // Header
             header
+            
+            Divider()
+            
+            // Folder monitoring control
+            folderMonitoringSection
             
             Divider()
             
@@ -93,6 +100,44 @@ struct LibrarySettings: View {
                 await loadFolders()
             }
         }
+    }
+    
+    // MARK: - Folder Monitoring Section
+    
+    private var folderMonitoringSection: some View {
+        HStack(spacing: 12) {
+            // Icon
+            Image(systemName: folderWatcher.isWatching ? "eye.fill" : "eye.slash.fill")
+                .font(.system(size: 16))
+                .foregroundColor(folderWatcher.isWatching ? theme.currentTheme.primaryColor : .secondary)
+                .frame(width: 24)
+            
+            // Info
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Automatic Folder Monitoring")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(.primary)
+                
+                Text(folderWatcher.isWatching 
+                    ? "Watching \(folderWatcher.watchedFoldersCount) folder\(folderWatcher.watchedFoldersCount == 1 ? "" : "s") for changes" 
+                    : "Enable to automatically update your library when files change")
+                    .font(.system(size: 11))
+                    .foregroundColor(.secondary)
+            }
+            
+            Spacer()
+            
+            // Toggle
+            Toggle("", isOn: $enableFolderWatcher)
+                .toggleStyle(SwitchToggleStyle())
+                .labelsHidden()
+                .onChange(of: enableFolderWatcher) { _, newValue in
+                    handleMonitoringToggle(newValue)
+                }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(Color(nsColor: .controlBackgroundColor))
     }
     
     // MARK: - Header
@@ -231,6 +276,16 @@ struct LibrarySettings: View {
                 .foregroundColor(.secondary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+    }
+    
+    // MARK: - Folder Monitoring
+    
+    private func handleMonitoringToggle(_ enabled: Bool) {
+        if enabled {
+            folderWatcher.startWatching(databaseManager: databaseManager)
+        } else {
+            folderWatcher.stopWatching()
+        }
     }
     
     // MARK: - Data Loading

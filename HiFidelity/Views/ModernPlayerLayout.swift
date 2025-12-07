@@ -17,10 +17,20 @@ struct ModernPlayerLayout: View {
     @State private var selectedEntity: EntityType?
     @State private var showSettings = false
     @State private var rightPanelTab: RightPanelTab = .queue
-    @State private var showRightPanel = true
-    @State private var showLeftSidebar = true
+    @AppStorage("showRightPanel") private var showRightPanel = true
+    @AppStorage("showLeftSidebar") private var showLeftSidebar = true
     @State private var searchText = ""
     @State private var isSearchActive = false
+    
+    // Dynamic minimum width based on visible panels
+    private var minimumWidth: CGFloat {
+        switch (showLeftSidebar, showRightPanel) {
+        case (true, true):   return 1100  // Both panels open
+        case (true, false),
+             (false, true):  return 900   // One panel open
+        case (false, false): return 900   // No panels open (just main content)
+        }
+    }
     
     var body: some View {
         VStack(spacing: 0) {
@@ -47,7 +57,7 @@ struct ModernPlayerLayout: View {
                 rightPanelTab: $rightPanelTab
             )
         }
-        .frame(minWidth: 1100, idealWidth: 1400, minHeight: 700, idealHeight: 900)
+        .frame(minWidth: minimumWidth, idealWidth: 1400, minHeight: 680, idealHeight: 900)
         .background(Color(nsColor: .windowBackgroundColor))
         .sheet(isPresented: $showSettings) {
             SettingsView()

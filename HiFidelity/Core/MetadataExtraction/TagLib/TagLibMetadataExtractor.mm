@@ -260,9 +260,17 @@ static void ExtractID3v2Metadata(TagLib::ID3v2::Tag* tag, TagLibAudioMetadata* m
         }
         // Attached picture (album art)
         else if (auto picFrame = dynamic_cast<TagLib::ID3v2::AttachedPictureFrame*>(frame)) {
-            if (metadata.artworkData == nil && 
-                picFrame->type() == TagLib::ID3v2::AttachedPictureFrame::FrontCover) {
-                TagLib::ByteVector picData = picFrame->picture();
+            TagLib::ByteVector picData = picFrame->picture();
+            
+            // Skip empty pictures
+            if (picData.size() == 0) continue;
+            
+            // If we haven't found artwork yet, take any picture
+            // If we have artwork but this is FrontCover, prefer it
+            bool shouldExtract = (metadata.artworkData == nil) || 
+                                (picFrame->type() == TagLib::ID3v2::AttachedPictureFrame::FrontCover);
+            
+            if (shouldExtract) {
                 metadata.artworkData = [NSData dataWithBytes:picData.data() length:picData.size()];
                 metadata.artworkMimeType = TagStringToNSString(picFrame->mimeType());
             }
@@ -389,6 +397,36 @@ static void ExtractMP4Metadata(TagLib::MP4::Tag* tag, TagLibAudioMetadata* metad
     
     if (items.contains("----:com.apple.iTunes:MusicBrainz Album Release Country")) {
         metadata.releaseCountry = TagStringToNSString(items["----:com.apple.iTunes:MusicBrainz Album Release Country"].toStringList().toString());
+    }
+}
+
+// Extract picture from Xiph Comment (used by Vorbis, Opus, etc.)
+static void ExtractXiphPicture(TagLib::Ogg::XiphComment* tag, TagLibAudioMetadata* metadata) {
+    if (!tag || metadata.artworkData != nil) return;
+    
+    // Check if there are any pictures embedded
+    const TagLib::List<TagLib::FLAC::Picture*>& pictures = tag->pictureList();
+    
+    // First pass: look for FrontCover
+    for (auto pic : pictures) {
+        if (pic->type() == TagLib::FLAC::Picture::FrontCover) {
+            TagLib::ByteVector imageData = pic->data();
+            if (imageData.size() > 0) {
+                metadata.artworkData = [NSData dataWithBytes:imageData.data() length:imageData.size()];
+                metadata.artworkMimeType = TagStringToNSString(pic->mimeType());
+                return;
+            }
+        }
+    }
+    
+    // Second pass: take any picture
+    for (auto pic : pictures) {
+        TagLib::ByteVector imageData = pic->data();
+        if (imageData.size() > 0) {
+            metadata.artworkData = [NSData dataWithBytes:imageData.data() length:imageData.size()];
+            metadata.artworkMimeType = TagStringToNSString(pic->mimeType());
+            break;
+        }
     }
 }
 
@@ -580,9 +618,23 @@ static void ExtractFLACPicture(TagLib::FLAC::File* file, TagLibAudioMetadata* me
     if (!file) return;
     
     const TagLib::List<TagLib::FLAC::Picture*>& pictures = file->pictureList();
+    
+    // First pass: look for FrontCover specifically
     for (auto pic : pictures) {
         if (pic->type() == TagLib::FLAC::Picture::FrontCover) {
             TagLib::ByteVector imageData = pic->data();
+            if (imageData.size() > 0) {
+                metadata.artworkData = [NSData dataWithBytes:imageData.data() length:imageData.size()];
+                metadata.artworkMimeType = TagStringToNSString(pic->mimeType());
+                return;
+            }
+        }
+    }
+    
+    // Second pass: if no FrontCover found, take any picture
+    for (auto pic : pictures) {
+        TagLib::ByteVector imageData = pic->data();
+        if (imageData.size() > 0) {
             metadata.artworkData = [NSData dataWithBytes:imageData.data() length:imageData.size()];
             metadata.artworkMimeType = TagStringToNSString(pic->mimeType());
             break;
@@ -782,6 +834,7 @@ static void ExtractAPEMetadata(TagLib::APE::Tag* tag, TagLibAudioMetadata* metad
             
             if (vorbisFile.tag()) {
                 ExtractXiphCommentMetadata(vorbisFile.tag(), metadata);
+                ExtractXiphPicture(vorbisFile.tag(), metadata);
             }
         }
     }
@@ -793,6 +846,7 @@ static void ExtractAPEMetadata(TagLib::APE::Tag* tag, TagLibAudioMetadata* metad
             
             if (opusFile.tag()) {
                 ExtractXiphCommentMetadata(opusFile.tag(), metadata);
+                ExtractXiphPicture(opusFile.tag(), metadata);
             }
         }
     }
@@ -804,6 +858,7 @@ static void ExtractAPEMetadata(TagLib::APE::Tag* tag, TagLibAudioMetadata* metad
             
             if (oggFlacFile.tag()) {
                 ExtractXiphCommentMetadata(oggFlacFile.tag(), metadata);
+                ExtractXiphPicture(oggFlacFile.tag(), metadata);
             }
         }
     }
@@ -896,6 +951,7 @@ static void ExtractAPEMetadata(TagLib::APE::Tag* tag, TagLibAudioMetadata* metad
             
             if (speexFile.tag()) {
                 ExtractXiphCommentMetadata(speexFile.tag(), metadata);
+                ExtractXiphPicture(speexFile.tag(), metadata);
             }
         }
     }

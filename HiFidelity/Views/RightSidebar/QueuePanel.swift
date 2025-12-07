@@ -228,7 +228,7 @@ struct QueuePanel: View {
         )
         .contentShape(Rectangle())
         .onTapGesture(count: 2) {
-            playback.playTracks(playback.queue, startingAt: index)
+            playback.play(track: track)
         }
         .onDrag({
             self.draggedIndex = index

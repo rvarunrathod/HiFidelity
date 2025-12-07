@@ -255,7 +255,7 @@ struct TracksTabView: View {
         isLoading = true
         
         do {
-            tracks = try await DatabaseCache.shared.getAllTracks()
+            tracks = try await DatabaseCache.shared.getAllTracks(forceRefresh: true)
         } catch {
             Logger.error("Failed to load tracks: \(error)")
         }

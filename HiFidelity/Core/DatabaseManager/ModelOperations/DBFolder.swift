@@ -98,6 +98,9 @@ extension DatabaseManager {
                 : "Removed folder '\(folder.name)' with \(trackCount) tracks"
             NotificationManager.shared.addMessage(.info, message)
             NotificationCenter.default.post(name: .libraryDataDidChange, object: nil)
+            
+            // Stop monitoring this folder
+            FolderWatcherService.shared.stopWatching(folder: folder)
         }
     }
     
@@ -209,6 +212,13 @@ extension DatabaseManager {
         // INSTANT UI UPDATE: Notify observers immediately after folders are added
         await MainActor.run {
             NotificationCenter.default.post(name: .foldersDataDidChange, object: nil)
+            
+            // Start watching newly added folders if monitoring is enabled
+            if FolderWatcherService.shared.isWatching {
+                for folder in addedFolders {
+                    FolderWatcherService.shared.startWatching(folder: folder)
+                }
+            }
         }
 
         // Scan the folders for tracks in background
@@ -453,10 +463,6 @@ extension DatabaseManager {
                     switch result {
                     case .success:
                         Logger.info("Successfully refreshed folder \(folder.name)")
-                        
-                        // Reload the library to reflect changes
-//                        self.refreshLibraryCategories()
-//                        self.loadMusicLibrary()
                     case .failure(let error):
                         Logger.error("Failed to refresh folder \(folder.name): \(error)")
                     }

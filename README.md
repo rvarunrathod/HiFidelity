@@ -54,8 +54,8 @@
 
 ## 🔮 Upcoming Features
 
+- ~~Automatic scanning and updating of the music library~~ ( ✅ [1.0.4](https://github.com/rvarunrathod/HiFidelity/releases/tag/v1.0.4) )
 - ReplayGain and volume normalization 
-- Automatic scanning and updating of the music library
 - let user change audio output device from UI
 - Audio visualizers  (waveform / spectrum)
 - A compact Mini Player mode 

@@ -17,18 +17,19 @@ struct BottomPlaybackBar: View {
         VStack(spacing: 0) {
             // Progress bar
             ProgressBarControl()
+                .zIndex(1)
             
             // Main control bar
             HStack(spacing: 16) {
                 // Left: Track Info
                 TrackInfoDisplay()
                 
-                Spacer(minLength: 20)
+                Spacer(minLength: 10)
                 
                 // Center: Playback Controls
                 PlaybackControlsCenter()
                 
-                Spacer(minLength: 20)
+                Spacer(minLength: 10)
                 
                 // Right: Volume and extras
                 RightControlsSection(

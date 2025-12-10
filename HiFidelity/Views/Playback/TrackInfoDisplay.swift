@@ -12,7 +12,7 @@ struct TrackInfoDisplay: View {
     @ObservedObject var theme = AppTheme.shared
     
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 14) {
             // Album artwork
             artworkView
             
@@ -24,7 +24,7 @@ struct TrackInfoDisplay: View {
                 placeholderDetails
             }
         }
-        .frame(minWidth: 200, maxWidth: 320, alignment: .leading)
+        .frame(minWidth: 200, maxWidth: 300, alignment: .leading)
     }
     
     // MARK: - Artwork View
@@ -33,6 +33,7 @@ struct TrackInfoDisplay: View {
     private var artworkView: some View {
         if let track = playback.currentTrack {
             TrackArtworkView(track: track, size: 56, cornerRadius: 6)
+                .shadow(color: .black.opacity(0.15), radius: 6, y: 3)
         } else {
             placeholderArtwork
         }
@@ -43,53 +44,79 @@ struct TrackInfoDisplay: View {
             RoundedRectangle(cornerRadius: 6)
                 .fill(Color(nsColor: .controlBackgroundColor))
             Image(systemName: "music.note")
-                .font(.system(size: 20))
-                .foregroundColor(.secondary.opacity(0.5))
+                .font(.system(size: 20, weight: .light))
+                .symbolRenderingMode(.hierarchical)
+                .foregroundColor(.secondary.opacity(0.4))
         }
         .frame(width: 56, height: 56)
+        .shadow(color: .black.opacity(0.08), radius: 4, y: 2)
     }
     
     // MARK: - Track Details
     
     private func trackDetails(for track: Track) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: 5) {
             Text(track.title)
-                .font(AppFonts.sidebarItem)
+                .font(.system(size: 14, weight: .semibold))
                 .lineLimit(1)
                 .foregroundColor(.primary)
             
             Text(track.artist)
-                .font(AppFonts.captionLarge)
+                .font(.system(size: 13, weight: .medium))
                 .lineLimit(1)
-                .foregroundColor(.secondary)
+                .foregroundColor(.secondary.opacity(0.85))
         }
     }
     
     private var placeholderDetails: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: 5) {
             Text("Not Playing")
-                .font(AppFonts.sidebarItem)
-                .foregroundColor(.secondary)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundColor(.secondary.opacity(0.7))
             
             Text("Select a track to play")
-                .font(AppFonts.captionLarge)
-                .foregroundColor(.secondary.opacity(0.7))
+                .font(.system(size: 13))
+                .foregroundColor(.secondary.opacity(0.6))
         }
     }
     
     // MARK: - Favorite Button
     
     private func favoriteButton(for track: Track) -> some View {
-        Button {
-            playback.toggleFavorite()
-        } label: {
-            Image(systemName: track.isFavorite ? "heart.fill" : "heart")
-                .font(AppFonts.bodySmall)
-                .foregroundColor(track.isFavorite ? theme.currentTheme.primaryColor : .secondary)
-                .frame(width: 28, height: 28)
-                .contentShape(Rectangle())
+        FavoriteButton(
+            isFavorite: track.isFavorite,
+            action: { playback.toggleFavorite() }
+        )
+    }
+    
+    private struct FavoriteButton: View {
+        let isFavorite: Bool
+        let action: () -> Void
+        
+        @ObservedObject var theme = AppTheme.shared
+        @State private var isHovered = false
+        
+        var body: some View {
+            Button(action: action) {
+                Image(systemName: isFavorite ? "heart.fill" : "heart")
+                    .font(.system(size: 16, weight: .semibold))
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundColor(isFavorite ? theme.currentTheme.primaryColor : .secondary)
+                    .frame(width: 32, height: 32)
+                    .background(
+                        Circle()
+                            .fill(isHovered ? Color.primary.opacity(0.06) : Color.clear)
+                    )
+                    .scaleEffect(isHovered ? 1.1 : 1.0)
+                    .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isHovered)
+                    .contentShape(Circle())
+            }
+            .buttonStyle(.plain)
+            .onHover { hovering in
+                isHovered = hovering
+            }
+            .help(isFavorite ? "Remove from Favorites" : "Add to Favorites")
         }
-        .buttonStyle(PlainHoverButtonStyle())
     }
 }
 

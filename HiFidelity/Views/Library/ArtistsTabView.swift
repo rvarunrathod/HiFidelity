@@ -62,7 +62,7 @@ struct ArtistsTabView: View {
                     ], spacing: 20) {
                         ForEach(Array(filteredArtists.enumerated()), id: \.element.id) { index, artist in
                             ArtistCard(artist: artist) {
-                                withAnimation(.easeInOut(duration: 0.2)) {
+                                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                                     selectedEntity = .artist(artist)
                                 }
                             }

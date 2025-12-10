@@ -10,14 +10,14 @@ import SwiftUI
 // MARK: - Shared Empty State View
 
 func emptyStateView(icon: String, message: String) -> some View {
-    VStack(spacing: 18) {
+    VStack(spacing: 20) {
         Image(systemName: icon)
-            .font(.system(size: 48))
-            .foregroundColor(.secondary.opacity(0.3))
+            .font(.system(size: 56, weight: .light))
+            .foregroundColor(.secondary.opacity(0.35))
         
         Text(message)
-            .font(.system(size: 14))
-            .foregroundColor(.secondary)
+            .font(.system(size: 15, weight: .medium))
+            .foregroundColor(.secondary.opacity(0.8))
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity)
 }
@@ -46,48 +46,50 @@ struct AlbumCard: View, Equatable {
                 ZStack {
                     if let albumId = album.id {
                         AlbumArtworkView(albumId: albumId, size: 160, cornerRadius: 8)
+                            .shadow(color: .black.opacity(isHovered ? 0.25 : 0.15), radius: isHovered ? 12 : 8, y: isHovered ? 6 : 4)
                     } else {
-                        RoundedRectangle(cornerRadius: 8)
+                        RoundedRectangle(cornerRadius: 10)
                             .fill(theme.currentTheme.primaryColor.opacity(0.3))
                             .frame(width: 160, height: 160)
+                            .shadow(color: .black.opacity(0.1), radius: 6, y: 3)
                     }
                     
                     if isHovered {
                         Circle()
                             .fill(theme.currentTheme.primaryColor)
-                            .frame(width: 48, height: 48)
+                            .frame(width: 54, height: 54)
                             .overlay(
-                                Image(systemName: "play.fill")
-                                    .font(.system(size: 20))
+                                Image(systemName: "arrow.right")
+                                    .font(.system(size: 22, weight: .semibold))
                                     .foregroundColor(.white)
                             )
-                            .shadow(radius: 10)
-                            .transition(.scale.combined(with: .opacity))
+                            .shadow(color: theme.currentTheme.primaryColor.opacity(0.4), radius: 12, y: 4)
+                            .transition(.scale(scale: 0.8).combined(with: .opacity))
                     }
                 }
                 .frame(width: 160, height: 160)
+                .scaleEffect(isHovered ? 1.02 : 1.0)
+                .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isHovered)
                 
                 // Info
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: 5) {
                     Text(album.title)
                         .font(.system(size: 12, weight: .semibold))
                         .foregroundColor(.primary)
                         .lineLimit(1)
                         .help(album.title)
-                        
                     
                     if let year = album.year {
                         Text(year)
-                            .font(.system(size: 10))
+                            .font(.system(size: 10, weight: .medium))
                             .foregroundColor(.secondary)
                             .lineLimit(1)
                     }
                     
                     Text("\(album.trackCount.description) \(album.trackCount == 1 ? "song" : "songs")")
                         .font(.system(size: 10))
-                        .foregroundColor(.secondary)
+                        .foregroundColor(.secondary.opacity(0.85))
                         .lineLimit(1)
-                    
                 }
                 .textSelection(.enabled)
             }
@@ -96,7 +98,7 @@ struct AlbumCard: View, Equatable {
         .padding(8)
         .buttonStyle(.plain)
         .onHover { hovering in
-            withAnimation(.easeInOut(duration: 0.2)) {
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                 isHovered = hovering
             }
         }
@@ -126,34 +128,38 @@ struct ArtistCard: View, Equatable {
                 ZStack {
                     if let artistId = artist.id {
                         ArtistArtworkView(artistId: artistId, size: 160)
+                            .shadow(color: .black.opacity(isHovered ? 0.25 : 0.15), radius: isHovered ? 12 : 8, y: isHovered ? 6 : 4)
                     } else {
                         Circle()
                             .fill(theme.currentTheme.primaryColor.opacity(0.3))
                             .frame(width: 160, height: 160)
                             .overlay(
                                 Image(systemName: "person.fill")
-                                    .font(.system(size: 50))
+                                    .font(.system(size: 54, weight: .medium))
                                     .foregroundColor(.white.opacity(0.7))
                             )
+                            .shadow(color: .black.opacity(0.1), radius: 6, y: 3)
                     }
                     
                     if isHovered {
                         Circle()
                             .fill(theme.currentTheme.primaryColor)
-                            .frame(width: 48, height: 48)
+                            .frame(width: 54, height: 54)
                             .overlay(
-                                Image(systemName: "play.fill")
-                                    .font(.system(size: 20))
+                                Image(systemName: "arrow.right")
+                                    .font(.system(size: 22, weight: .semibold))
                                     .foregroundColor(.white)
                             )
-                            .shadow(radius: 10)
-                            .transition(.scale.combined(with: .opacity))
+                            .shadow(color: theme.currentTheme.primaryColor.opacity(0.4), radius: 12, y: 4)
+                            .transition(.scale(scale: 0.8).combined(with: .opacity))
                     }
                 }
                 .frame(width: 160, height: 160)
+                .scaleEffect(isHovered ? 1.02 : 1.0)
+                .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isHovered)
                 
                 // Info
-                VStack(spacing: 4) {
+                VStack(spacing: 5) {
                     Text(artist.name)
                         .font(.system(size: 12, weight: .semibold))
                         .foregroundColor(.primary)
@@ -161,16 +167,16 @@ struct ArtistCard: View, Equatable {
                     
                     Text("\(artist.trackCount.description) \(artist.trackCount == 1 ? "song" : "songs")")
                         .font(.system(size: 10))
-                        .foregroundColor(.secondary)
+                        .foregroundColor(.secondary.opacity(0.85))
                 }
                 .textSelection(.enabled)
             }
-            .frame(width: 160, alignment: .leading)
+            .frame(width: 160, alignment: .center)
         }
         .padding(8)
         .buttonStyle(.plain)
         .onHover { hovering in
-            withAnimation(.easeInOut(duration: 0.2)) {
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                 isHovered = hovering
             }
         }
@@ -196,28 +202,31 @@ struct GenreCard: View, Equatable {
         Button(action: onTap) {
             ZStack(alignment: .bottomLeading) {
                 // Background gradient specific to genre
-                RoundedRectangle(cornerRadius: 12)
+                RoundedRectangle(cornerRadius: 14)
                     .fill(genreGradient)
-                    .frame(height: 120)
+                    .frame(height: 130)
                 
                 // Genre info
-                VStack(alignment: .leading, spacing: 6) {
+                VStack(alignment: .leading, spacing: 7) {
                     Text(genre.name)
-                        .font(.system(size: 18, weight: .bold))
+                        .font(.system(size: 19, weight: .bold, design: .rounded))
                         .foregroundColor(.white)
                         .lineLimit(2)
                         .multilineTextAlignment(.leading)
+                        .shadow(color: .black.opacity(0.2), radius: 2, y: 1)
                     
                     Text("\(genre.trackCount) \(genre.trackCount == 1 ? "track" : "tracks")")
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundColor(.white.opacity(0.85))
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(.white.opacity(0.9))
+                        .shadow(color: .black.opacity(0.15), radius: 1, y: 1)
                 }
-                .padding(16)
+                .padding(18)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .textSelection(.enabled)
             }
-            .scaleEffect(isHovered ? 1.02 : 1.0)
-            .shadow(color: .black.opacity(isHovered ? 0.3 : 0.15), radius: isHovered ? 12 : 8)
+            .scaleEffect(isHovered ? 1.03 : 1.0)
+            .shadow(color: .black.opacity(isHovered ? 0.35 : 0.2), radius: isHovered ? 14 : 10, y: isHovered ? 6 : 4)
+            .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isHovered)
         }
         .buttonStyle(.plain)
         .onHover { hovering in
@@ -344,37 +353,40 @@ struct TrackGridCard: View, Equatable {
         VStack(spacing: 8) {
             // Artwork
             ZStack {
-                TrackArtworkView(track: track, size: 140, cornerRadius: 8)
+                TrackArtworkView(track: track, size: 140, cornerRadius: 10)
+                    .shadow(color: .black.opacity(isHovered ? 0.25 : 0.15), radius: isHovered ? 12 : 8, y: isHovered ? 6 : 4)
                 
                 // Play button overlay
                 if isHovered {
                     Button(action: onPlay) {
                         Circle()
                             .fill(theme.currentTheme.primaryColor)
-                            .frame(width: 44, height: 44)
+                            .frame(width: 50, height: 50)
                             .overlay(
                                 Image(systemName: "play.fill")
-                                    .font(.system(size: 18))
+                                    .font(.system(size: 20, weight: .semibold))
                                     .foregroundColor(.white)
                             )
-                            .shadow(radius: 10)
+                            .shadow(color: theme.currentTheme.primaryColor.opacity(0.4), radius: 12, y: 4)
                     }
                     .buttonStyle(.plain)
-                    .transition(.scale.combined(with: .opacity))
+                    .transition(.scale(scale: 0.8).combined(with: .opacity))
                 }
             }
             .frame(width: 140, height: 140)
+            .scaleEffect(isHovered ? 1.02 : 1.0)
+            .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isHovered)
             
             // Track info
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 4) {
                 Text(track.title)
-                    .font(.system(size: 12, weight: .medium))
+                    .font(.system(size: 13, weight: .semibold))
                     .foregroundColor(.primary)
                     .lineLimit(1)
                 
                 Text(track.artist)
                     .font(.system(size: 11))
-                    .foregroundColor(.secondary)
+                    .foregroundColor(.secondary.opacity(0.85))
                     .lineLimit(1)
             }
             .textSelection(.enabled)
@@ -383,11 +395,11 @@ struct TrackGridCard: View, Equatable {
         }
         .padding(8)
         .background(
-            RoundedRectangle(cornerRadius: 8)
-                .fill(isHovered ? Color(nsColor: .controlBackgroundColor) : Color.clear)
+            RoundedRectangle(cornerRadius: 10)
+                .fill(isHovered ? Color.primary.opacity(0.04) : Color.clear)
         )
         .onHover { hovering in
-            withAnimation(.easeInOut(duration: 0.2)) {
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                 isHovered = hovering
             }
         }

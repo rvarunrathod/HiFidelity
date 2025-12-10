@@ -12,18 +12,12 @@ struct VolumeControlSection: View {
     @ObservedObject var theme = AppTheme.shared
     
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 10) {
             // Mute button
-            Button {
-                playback.toggleMute()
-            } label: {
-                Image(systemName: volumeIcon)
-                    .font(.system(size: 14))
-                    .foregroundColor(.secondary)
-                    .frame(width: 24, height: 24)
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(PlainHoverButtonStyle())
+            VolumeButton(
+                icon: volumeIcon,
+                action: { playback.toggleMute() }
+            )
             
             // Volume slider
             Slider(
@@ -32,6 +26,34 @@ struct VolumeControlSection: View {
             )
             .frame(width: 100)
             .accentColor(theme.currentTheme.primaryColor)
+        }
+    }
+    
+    private struct VolumeButton: View {
+        let icon: String
+        let action: () -> Void
+        
+        @State private var isHovered = false
+        
+        var body: some View {
+            Button(action: action) {
+                Image(systemName: icon)
+                    .font(.system(size: 16, weight: .medium))
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundColor(.secondary)
+                    .frame(width: 32, height: 32)
+                    .background(
+                        Circle()
+                            .fill(isHovered ? Color.primary.opacity(0.06) : Color.clear)
+                    )
+                    .scaleEffect(isHovered ? 1.08 : 1.0)
+                    .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isHovered)
+                    .contentShape(Circle())
+            }
+            .buttonStyle(.plain)
+            .onHover { hovering in
+                isHovered = hovering
+            }
         }
     }
     

@@ -112,19 +112,37 @@ struct PlaylistSidebarView: View {
             Spacer()
             
             // Create button
-            Button {
-                showCreatePlaylist = true
-            } label: {
-                Image(systemName: "plus")
-                    .font(.system(size: 18))
-                    .foregroundColor(.secondary)
-                    .frame(width: 32, height: 32)
-            }
-            .buttonStyle(.plain)
+            CreatePlaylistButton(action: { showCreatePlaylist = true })
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
         .frame(height: 52)
+    }
+
+    private struct CreatePlaylistButton: View {
+        let action: () -> Void
+        @State private var isHovered = false
+        @ObservedObject var theme = AppTheme.shared
+        
+        var body: some View {
+            Button(action: action) {
+                Image(systemName: "plus")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(isHovered ? .white : theme.currentTheme.primaryColor)
+                    .frame(width: 32, height: 32)
+                    .background(
+                        Circle()
+                            .fill(isHovered ? theme.currentTheme.primaryColor : theme.currentTheme.primaryColor.opacity(0.12))
+                    )
+                    .scaleEffect(isHovered ? 1.08 : 1.0)
+                    .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isHovered)
+            }
+            .buttonStyle(.plain)
+            .onHover { hovering in
+                isHovered = hovering
+            }
+            .help("Create New Playlist")
+        }
     }
     
     // MARK: - Search Bar
@@ -244,8 +262,8 @@ struct PlaylistSidebarView: View {
                     .fill(
                         LinearGradient(
                             colors: [
-                                theme.currentTheme.primaryColor.opacity(0.6),
-                                theme.currentTheme.primaryColor
+                                theme.currentTheme.primaryColor.opacity(0.4),
+                                theme.currentTheme.primaryColor.opacity(0.8)
                             ],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing

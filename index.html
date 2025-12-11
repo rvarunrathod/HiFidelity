@@ -34,7 +34,6 @@
             </div>
             <div class="nav-links">
                 <a href="#features">Features</a>
-                <a href="#screenshots">Gallery</a>
                 <a href="#download">Download</a>
                 <a href="https://github.com/rvarunrathod/HiFidelity" target="_blank" class="github-link">
                     <svg height="20" width="20" viewBox="0 0 16 16" fill="currentColor">
@@ -46,10 +45,16 @@
         </div>
     </nav>
 
-    <section class="hero">
+    <section class="hero-image-section">
+        <div class="hero-image-container">
+            <img src="docs/images/musicPlayer.png" alt="HiFidelity Main Interface" class="app-screenshot">
+        </div>
+    </section>
+
+    <section class="hero hero-centered">
         <div class="hero-content">
             <h1 class="hero-title">Experience Music<br>in High Fidelity</h1>
-            <p class="hero-subtitle">Professional-grade audio playback for macOS. Completely offline. No subscriptions, no tracking. Just pure, uncompromised sound quality for your personal music collection.</p>
+            <p class="hero-subtitle">Professional-grade audio playback for macOS. Completely offline. No subscriptions, no tracking. Just pure, uncompromised sound quality.</p>
             <div class="hero-buttons">
                 <a href="https://github.com/rvarunrathod/HiFidelity/releases/latest" class="btn btn-primary">
                     <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
@@ -58,239 +63,126 @@
                     </svg>
                     Download for macOS
                 </a>
-                <a href="#download" class="btn btn-secondary">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                        <polyline points="7 10 12 15 17 10"/>
-                        <line x1="12" y1="15" x2="12" y2="3"/>
+                
+                <a href="#download" class="btn btn-primary">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                        <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+                        <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
                     </svg>
-                    Download using Homebrew
+                    Download from Homebrew
                 </a>
+                
+                <p class="hero-requirements">macOS 14.0+ (Sonoma) · Apple Silicon & Intel</p>
             </div>
-            <p class="hero-requirements">macOS 14.0+ (Sonoma) · Apple Silicon & Intel</p>
         </div>
-        <div class="hero-image">
-            <img src="docs/images/Home-page-albums.png" alt="HiFidelity Interface" class="app-screenshot">
-        </div>
+    </section>
+
+    <section class="features-header">
+        <h2>Powerful Features</h2>
+        <p>Everything you need for the ultimate music listening experience</p>
     </section>
 
     <section class="features" id="features">
-        <div class="section-header">
-            <h2>Powerful features.<br>Simple to use.</h2>
-            <p class="section-subtitle">Everything you need to enjoy your music collection at its best.</p>
-        </div>
         
-        <div class="features-grid">
-            <div class="feature-card">
-                <div class="feature-icon">
-                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M9 18V5l12-2v13"/>
-                        <circle cx="6" cy="18" r="3"/>
-                        <circle cx="18" cy="16" r="3"/>
-                    </svg>
-                </div>
-                <h3>Professional Audio Engine</h3>
-                <p>Powered by BASS audio library delivering studio-quality playback. Hear every detail exactly as the artist intended.</p>
+        <!-- Feature 1: Main Player / Quality -->
+        <div class="feature-row">
+            <div class="feature-content">
+                <div class="feature-label">Professional Audio</div>
+                <h3>Uncompromised Sound Quality</h3>
+                <p>Powered by the BASS audio library, HiFidelity delivers studio-quality playback. Support for FLAC, WAV, AIFF, and more ensures you hear every detail exactly as the artist intended.</p>
             </div>
-
-            <div class="feature-card">
-                <div class="feature-icon">
-                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M12 2v20M2 12h20"/>
-                        <path d="M4.93 4.93l14.14 14.14M19.07 4.93L4.93 19.07"/>
-                    </svg>
-                </div>
-                <h3>20+ Audio Formats</h3>
-                <p>Support for FLAC, WAV, AIFF, MP3, AAC, OGG, OPUS, and more. Play any audio file in your collection.</p>
+            <div class="feature-media">
+                <img src="docs/images/musicPlayer.png" alt="Album Library" class="feature-img">
             </div>
+        </div>
 
-            <div class="feature-card">
-                <div class="feature-icon">
-                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="10"/>
-                        <polyline points="12 6 12 12 16 14"/>
-                    </svg>
-                </div>
-                <h3>Gapless Playback</h3>
-                <p>Seamless transitions between tracks with zero interruption. Perfect for albums, DJ mixes, and continuous listening.</p>
+        <!-- Feature 2: Mini Player -->
+        <div class="feature-row reverse">
+            <div class="feature-content">
+                <div class="feature-label">Mini Player</div>
+                <h3>Always with you</h3>
+                <p>The Mini Player provides a compact view of your current track and playback controls. Keep your music accessible without cluttering your workspace.</p>
             </div>
-
-            <div class="feature-card">
-                <div class="feature-icon">
-                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <line x1="4" y1="21" x2="4" y2="14"/>
-                        <line x1="4" y1="10" x2="4" y2="3"/>
-                        <line x1="12" y1="21" x2="12" y2="12"/>
-                        <line x1="12" y1="8" x2="12" y2="3"/>
-                        <line x1="20" y1="21" x2="20" y2="16"/>
-                        <line x1="20" y1="12" x2="20" y2="3"/>
-                    </svg>
-                </div>
-                <h3>Customizable Equalizer</h3>
-                <p>Multi-band equalizer with presets. Fine-tune frequencies to match your headphones and preferences.</p>
+            <div class="feature-media">
+                <video autoplay loop muted playsinline class="feature-video">
+                    <source src="docs/images/miniplayer.mov" type="video/quicktime">
+                    <source src="docs/images/miniplayer.mov" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
             </div>
+        </div>
 
-            <div class="feature-card">
-                <div class="feature-icon">
-                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                        <polyline points="17 8 12 3 7 8"/>
-                        <line x1="12" y1="3" x2="12" y2="15"/>
-                    </svg>
-                </div>
+        <!-- Feature 3: Lyrics -->
+        <div class="feature-row">
+            <div class="feature-content">
+                <div class="feature-label">Lyrics</div>
+                <h3>Sing along</h3>
+                <p>Real-time, time-synced lyrics synchronized with your playback. Powered by lrclib with automatic downloads built-in, so you never miss a word.</p>
+            </div>
+            <div class="feature-media">
+                <video autoplay loop muted playsinline class="feature-video">
+                    <source src="docs/images/Lyrics.mov" type="video/quicktime">
+                    <source src="docs/images/Lyrics.mov" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+            </div>
+        </div>
+
+        <!-- Feature 4: Search -->
+        <div class="feature-row reverse">
+            <div class="feature-content">
+                <div class="feature-label">Search</div>
+                <h3>Find it fast</h3>
+                <p>Lightning-fast full-text search across your entire library. Find any song, album, or artist instantly, no matter how large your collection.</p>
+            </div>
+            <div class="feature-media">
+                <video autoplay loop muted playsinline class="feature-video">
+                    <source src="docs/images/search.mov" type="video/quicktime">
+                    <source src="docs/images/search.mov" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+            </div>
+        </div>
+
+        <!-- Feature 5: Autoplay/Queue -->
+        <div class="feature-row">
+            <div class="feature-content">
+                <div class="feature-label">Queue</div>
                 <h3>Intelligent Auto-Play</h3>
-                <p>Smart recommendations based on your listening habits. Never worry about what to play next.</p>
+                <p>Smart recommendations based on your listening habits keep the music flowing. Never worry about what to play next.</p>
             </div>
-
-            <div class="feature-card">
-                <div class="feature-icon">
-                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                        <polyline points="14 2 14 8 20 8"/>
-                        <line x1="16" y1="13" x2="8" y2="13"/>
-                        <line x1="16" y1="17" x2="8" y2="17"/>
-                        <polyline points="10 9 9 9 8 9"/>
-                    </svg>
-                </div>
-                <h3>Time-Synced Lyrics</h3>
-                <p>Real-time lyrics synchronized with playback. Powered by lrclib with automatic downloads built-in.</p>
-            </div>
-
-            <div class="feature-card">
-                <div class="feature-icon">
-                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="11" cy="11" r="8"/>
-                        <path d="m21 21-4.35-4.35"/>
-                    </svg>
-                </div>
-                <h3>Instant Search</h3>
-                <p>Lightning-fast full-text search across your entire library. Find any song, album, or artist instantly.</p>
-            </div>
-
-            <div class="feature-card">
-                <div class="feature-icon">
-                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/>
-                        <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-                        <line x1="12" y1="19" x2="12" y2="23"/>
-                        <line x1="8" y1="23" x2="16" y2="23"/>
-                    </svg>
-                </div>
-                <h3>100% Privacy</h3>
-                <p>Works completely offline. Zero data collection, zero tracking, zero telemetry. Your music library stays private.</p>
-            </div>
-        </div>
-    </section>
-
-    <section class="showcase" id="screenshots">
-        <div class="section-header">
-            <h2>Beautifully designed.<br>Thoughtfully crafted.</h2>
-            <p class="section-subtitle">A clean, intuitive interface that puts your music first.</p>
-        </div>
-
-        <div class="showcase-slider">
-            <div class="showcase-track" id="showcaseTrack">
-                <div class="showcase-item">
-                    <img src="docs/images/Album-view.png" alt="Album View" loading="lazy">
-                    <div class="showcase-caption">
-                        <h4>Album Gallery</h4>
-                        <p>Browse your collection with stunning album artwork in grid or list view</p>
-                    </div>
-                </div>
-
-                <div class="showcase-item">
-                    <img src="docs/images/Home-page-artists.png" alt="Artists View" loading="lazy">
-                    <div class="showcase-caption">
-                        <h4>Artists & Tracks</h4>
-                        <p>Organize by artists, albums, genres, or tracks</p>
-                    </div>
-                </div>
-
-                <div class="showcase-item">
-                    <img src="docs/images/Equalizer.png" alt="Equalizer" loading="lazy">
-                    <div class="showcase-caption">
-                        <h4>Audio Equalizer</h4>
-                        <p>Professional multi-band EQ with custom presets</p>
-                    </div>
-                </div>
-
-                <div class="showcase-item portrait">
-                    <img src="docs/images/Lyrics%20support.png" alt="Lyrics" loading="lazy">
-                    <div class="showcase-caption">
-                        <h4>Time-Synced Lyrics</h4>
-                        <p>Real-time lyrics with automatic downloads</p>
-                    </div>
-                </div>
-
-                <div class="showcase-item portrait">
-                    <img src="docs/images/Autoplay-queue.png" alt="Queue" loading="lazy">
-                    <div class="showcase-caption">
-                        <h4>Smart Queue</h4>
-                        <p>Intelligent auto-play keeps music flowing</p>
-                    </div>
-                </div>
-
-                <div class="showcase-item">
-                    <img src="docs/images/Search-view.png" alt="Search" loading="lazy">
-                    <div class="showcase-caption">
-                        <h4>Instant Search</h4>
-                        <p>Find anything in your library instantly with powerful full-text search</p>
-                    </div>
-                </div>
-
-                <div class="showcase-item">
-                    <img src="docs/images/Home-page-tracks.png" alt="Tracks View" loading="lazy">
-                    <div class="showcase-caption">
-                        <h4>All Tracks View</h4>
-                        <p>Browse your entire music library in one place</p>
-                    </div>
-                </div>
+            <div class="feature-media">
+                <video autoplay loop muted playsinline class="feature-video">
+                    <source src="docs/images/Autoplay.mov" type="video/quicktime">
+                    <source src="docs/images/Autoplay.mov" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
             </div>
         </div>
 
-        <div class="showcase-controls">
-            <button class="showcase-control" id="prevBtn" aria-label="Previous">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline points="15 18 9 12 15 6"></polyline>
-                </svg>
-            </button>
-            <button class="showcase-control" id="nextBtn" aria-label="Next">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline points="9 18 15 12 9 6"></polyline>
-                </svg>
-            </button>
-        </div>
-    </section>
-
-    <section class="formats">
-        <div class="formats-content">
-            <h2>Universal format support.<br>Play any audio file.</h2>
-            <div class="format-categories">
-                <div class="format-category">
-                    <h4>Lossless & High-Resolution</h4>
-                    <p>FLAC · WAV · AIFF · AIF · OGA · APE · WV · TTA · DFF · DSF</p>
-                </div>
-                <div class="format-category">
-                    <h4>Compressed & Lossy</h4>
-                    <p>MP3 · MP2 · AAC · OGG · OPUS · M4A · M4B · M4P · MP4 · M4V · MPC</p>
-                </div>
-                <div class="format-category">
-                    <h4>Specialized Formats</h4>
-                    <p>CAF · WEBM · SPX · And more...</p>
-                </div>
+        <!-- Feature 6: Equalizer -->
+        <div class="feature-row reverse">
+            <div class="feature-content">
+                <div class="feature-label">Equalizer</div>
+                <h3>Tune it your way</h3>
+                <p>Multi-band equalizer with presets allows you to fine-tune frequencies to match your headphones and personal preferences.</p>
+            </div>
+            <div class="feature-media">
+                <img src="docs/images/equalizer.png" alt="Equalizer" class="feature-img">
             </div>
         </div>
+
     </section>
 
     <section class="download-section" id="download">
         <div class="download-content">
-            <h2>Download HiFidelity</h2>
+            <h2>Get HiFidelity</h2>
             <p class="download-subtitle">Free, open source, and ready for your music collection.</p>
             
             <div class="download-options">
                 <div class="download-option">
                     <h3>Direct Download</h3>
-                    <p>Latest signed universal macOS application (Apple Silicon & Intel)</p>
+                    <p>Universal macOS application</p>
                     <a href="https://github.com/rvarunrathod/HiFidelity/releases/latest" class="btn btn-primary">
                         <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
                             <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
@@ -302,7 +194,7 @@
 
                 <div class="download-option">
                     <h3>Homebrew</h3>
-                    <p>Quick installation via command line package manager</p>
+                    <p>Install via command line</p>
                     <div class="code-block">
                         <code>brew tap rvarunrathod/tap</code>
                         <code>brew install --cask rvarunrathod/tap/hifidelity</code>
@@ -310,39 +202,47 @@
                 </div>
             </div>
 
-            <p class="system-requirements">macOS 14.0 (Sonoma) or later required · Universal Binary (Apple Silicon & Intel)</p>
+            <p class="system-requirements">macOS 14.0 (Sonoma) or later required</p>
         </div>
     </section>
 
     <footer class="footer">
         <div class="footer-content">
-            <div class="footer-links">
-                <a href="https://github.com/rvarunrathod/HiFidelity" target="_blank">GitHub Repository</a>
-                <a href="https://github.com/rvarunrathod/HiFidelity/releases" target="_blank">All Releases</a>
-                <a href="https://github.com/rvarunrathod/HiFidelity/blob/main/LICENSE" target="_blank">Apache 2.0 License</a>
-                <a href="https://github.com/rvarunrathod/HiFidelity/issues" target="_blank">Report Issues</a>
+            <div class="footer-grid">
+                <div class="footer-brand">
+                    <div class="footer-logo-wrap">
+                        <img src="docs/assets/AppIcon512x512.png" alt="HiFidelity" class="footer-logo">
+                        <span class="footer-title">HiFidelity</span>
+                    </div>
+                    <p class="footer-desc">Built for music lovers who value quality, privacy, and control.</p>
+                </div>
+                
+                <div class="footer-column">
+                    <h4>Product</h4>
+                    <a href="#features">Features</a>
+                    <a href="#download">Download</a>
+                    <a href="https://github.com/rvarunrathod/HiFidelity/releases">Changelog</a>
+                </div>
+                
+                <div class="footer-column">
+                    <h4>Community</h4>
+                    <a href="https://github.com/rvarunrathod/HiFidelity" target="_blank">GitHub</a>
+                    <a href="https://github.com/rvarunrathod/HiFidelity/issues" target="_blank">Issues</a>
+                    <a href="https://github.com/rvarunrathod/HiFidelity/discussions" target="_blank">Discussions</a>
+                </div>
+                
+                <div class="footer-column">
+                    <h4>Legal</h4>
+                    <a href="https://github.com/rvarunrathod/HiFidelity/blob/main/LICENSE" target="_blank">License</a>
+                </div>
             </div>
-            <p class="footer-text">Built for music lovers who value quality, privacy, and control over their music collection.</p>
-            <p class="footer-copyright">© 2025 HiFidelity · Open source and free forever · Licensed under Apache License 2.0</p>
+            
+            <div class="footer-bottom">
+                <p class="footer-copyright">© 2025 HiFidelity · Open source · Licensed under Apache 2.0</p>
+            </div>
         </div>
     </footer>
-
-    <!-- Lightbox Modal -->
-    <div id="lightbox" class="lightbox">
-        <div class="lightbox-backdrop"></div>
-        <div class="lightbox-content">
-            <button class="lightbox-close" id="lightboxClose" aria-label="Close">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
-            </button>
-            <img id="lightboxImage" src="" alt="">
-            <div class="lightbox-caption" id="lightboxCaption"></div>
-        </div>
-    </div>
 
     <script src="script.js"></script>
 </body>
 </html>
-

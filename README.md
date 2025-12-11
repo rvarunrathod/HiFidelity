@@ -79,21 +79,21 @@
     <tr>
       <td width="50%" align="center">
         <b>Mini Player</b><br>
-        <video src="docs/images/miniplayer.mov" controls width="100%"></video>
+        <video src="docs/images/miniplayer.mp4" controls width="100%"></video>
       </td>
       <td width="50%" align="center">
         <b>Lyrics Support</b><br>
-        <video src="docs/images/Lyrics.mov" controls width="100%"></video>
+        <video src="docs/images/Lyrics.mp4" controls width="100%"></video>
       </td>
     </tr>
     <tr>
       <td width="50%" align="center">
         <b>Advanced Search</b><br>
-        <video src="docs/images/search.mov" controls width="100%"></video>
+        <video src="docs/images/search.mp4" controls width="100%"></video>
       </td>
       <td width="50%" align="center">
         <b>Autoplay Queue</b><br>
-        <video src="docs/images/Autoplay.mov" controls width="100%"></video>
+        <video src="docs/images/Autoplay.mp4" controls width="100%"></video>
       </td>
     </tr>
   </table>

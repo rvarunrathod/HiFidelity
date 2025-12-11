@@ -35,7 +35,7 @@ struct LibraryTabButton: View {
             .frame(height: 36)
             .background(
                 RoundedRectangle(cornerRadius: 8)
-                    .fill(isSelected ? theme.currentTheme.primaryColor.opacity(0.60) : (isHovered ? Color.primary.opacity(0.06) : Color.clear))
+                    .fill(isSelected ? theme.currentTheme.primaryColor.opacity(0.80) : (isHovered ? Color.primary.opacity(0.06) : Color.clear))
                     .shadow(color: isSelected ? theme.currentTheme.primaryColor.opacity(0.3) : .clear, radius: isSelected ? 4 : 0, y: 1)
             )
             .scaleEffect(isHovered && !isSelected ? 1.02 : 1.0)

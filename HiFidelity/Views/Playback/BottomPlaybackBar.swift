@@ -20,22 +20,23 @@ struct BottomPlaybackBar: View {
                 .zIndex(1)
             
             // Main control bar
-            HStack(spacing: 16) {
-                // Left: Track Info
-                TrackInfoDisplay()
-                
-                Spacer(minLength: 10)
-                
-                // Center: Playback Controls
+            ZStack {
+                // Centered playback controls
                 PlaybackControlsCenter()
                 
-                Spacer(minLength: 10)
-                
-                // Right: Volume and extras
-                RightControlsSection(
-                    rightPanelTab: $rightPanelTab,
-                    showRightPanel: $showRightPanel
-                )
+                // Left and right sections
+                HStack(spacing: 8) {
+                    // Left: Track Info
+                    TrackInfoDisplay()
+                    
+                    Spacer()
+                    
+                    // Right: Volume and extras
+                    RightControlsSection(
+                        rightPanelTab: $rightPanelTab,
+                        showRightPanel: $showRightPanel
+                    )
+                }
             }
             .padding(.horizontal, 20)
             .padding(.vertical, 12)

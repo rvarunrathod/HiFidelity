@@ -353,10 +353,10 @@ private struct SearchBar: View {
         .padding(.vertical, 12)
         .frame(maxWidth: 440)
         .background(
-            RoundedRectangle(cornerRadius: 12)
+            RoundedRectangle(cornerRadius: 22)
                 .fill(Color(nsColor: .controlBackgroundColor))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 12)
+                    RoundedRectangle(cornerRadius: 22)
                         .strokeBorder(Color.primary.opacity(isFocused ? 0.1 : 0), lineWidth: 1.5)
                 )
                 .shadow(color: .black.opacity(isFocused ? 0.08 : 0.03), radius: isFocused ? 8 : 4, y: 2)

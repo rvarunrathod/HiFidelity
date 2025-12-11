@@ -49,22 +49,22 @@ extension PlaybackController {
             return .success
         }
         
-        // Seek forward/backward
-        commandCenter.skipForwardCommand.isEnabled = true
-        commandCenter.skipForwardCommand.preferredIntervals = [NSNumber(value: 15)]
-        commandCenter.skipForwardCommand.addTarget { [weak self] event in
-            guard let event = event as? MPSkipIntervalCommandEvent else { return .commandFailed }
-            self?.seekForward(event.interval)
-            return .success
-        }
-        
-        commandCenter.skipBackwardCommand.isEnabled = true
-        commandCenter.skipBackwardCommand.preferredIntervals = [NSNumber(value: 15)]
-        commandCenter.skipBackwardCommand.addTarget { [weak self] event in
-            guard let event = event as? MPSkipIntervalCommandEvent else { return .commandFailed }
-            self?.seekBackward(event.interval)
-            return .success
-        }
+//        // Seek forward/backward
+//        commandCenter.skipForwardCommand.isEnabled = true
+//        commandCenter.skipForwardCommand.preferredIntervals = [NSNumber(value: 15)]
+//        commandCenter.skipForwardCommand.addTarget { [weak self] event in
+//            guard let event = event as? MPSkipIntervalCommandEvent else { return .commandFailed }
+//            self?.seekForward(event.interval)
+//            return .success
+//        }
+//        
+//        commandCenter.skipBackwardCommand.isEnabled = true
+//        commandCenter.skipBackwardCommand.preferredIntervals = [NSNumber(value: 15)]
+//        commandCenter.skipBackwardCommand.addTarget { [weak self] event in
+//            guard let event = event as? MPSkipIntervalCommandEvent else { return .commandFailed }
+//            self?.seekBackward(event.interval)
+//            return .success
+//        }
         
         // Change playback position
         commandCenter.changePlaybackPositionCommand.isEnabled = true

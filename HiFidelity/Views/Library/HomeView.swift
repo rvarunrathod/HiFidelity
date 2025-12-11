@@ -36,14 +36,14 @@ struct HomeView: View {
     // MARK: - Library Tabs Header
     
     private var libraryTabsHeader: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 6) {
             ForEach(LibraryTab.allCases) { tab in
                 LibraryTabButton(
                     title: tab.title,
                     icon: tab.icon,
                     isSelected: selectedLibraryTab == tab
                 ) {
-                    withAnimation(.easeInOut(duration: 0.2)) {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                         selectedLibraryTab = tab
                     }
                 }
@@ -51,10 +51,18 @@ struct HomeView: View {
             
             Spacer()
         }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 12)
+        .padding(.horizontal, 24)
+        .padding(.vertical, 16)
         .frame(height: 52)
-        .background(Color(nsColor: .windowBackgroundColor))
+        .background(
+            Color(nsColor: .windowBackgroundColor)
+                .overlay(
+                    Rectangle()
+                        .fill(Color.primary.opacity(0.04))
+                        .frame(height: 1),
+                    alignment: .bottom
+                )
+        )
     }
     
     // MARK: - Tab Content

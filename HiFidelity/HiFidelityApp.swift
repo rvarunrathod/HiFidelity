@@ -138,6 +138,7 @@ struct HiFidelityApp: App {
     @CommandsBuilder
     private func viewMenuCommands() -> some Commands {
         CommandGroup(after: .toolbar) {
+            miniPlayerCommand()
             audioEffects()
 //            visualEffects()
         }
@@ -164,15 +165,22 @@ struct HiFidelityApp: App {
 //        }
 //    }
     
-    private func audioEffects() -> some View {
-        Menu("DSP") {
-            Button {
-                openWindow(id: "audio-effects")
-            } label: {
-                Text("Equalizer")
-            }
-            .keyboardShortcut("e", modifiers: [.command, .option])
+    private func miniPlayerCommand() -> some View {
+        Button {
+            MiniPlayerWindowController.toggle()
+        } label: {
+            Text("Mini Player")
         }
+        .keyboardShortcut("m", modifiers: [.command, .shift])
+    }
+    
+    private func audioEffects() -> some View {
+        Button {
+            openWindow(id: "audio-effects")
+        } label: {
+            Text("Equalizer")
+        }
+        .keyboardShortcut("e", modifiers: [.command, .option])
     }
 
 }

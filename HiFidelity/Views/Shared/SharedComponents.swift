@@ -20,24 +20,26 @@ struct ViewModeButton: View {
     var body: some View {
         Button(action: action) {
             Image(systemName: icon)
-                .font(.system(size: 14))
+                .font(.system(size: 15, weight: .medium))
+                .symbolRenderingMode(.hierarchical)
                 .foregroundColor(isSelected ? theme.currentTheme.primaryColor : .secondary)
-                .frame(width: 28, height: 28)
+                .frame(width: 32, height: 32)
                 .contentShape(Rectangle())
                 .background(
-                    RoundedRectangle(cornerRadius: 6)
+                    RoundedRectangle(cornerRadius: 7)
                         .fill(
                             isSelected
-                                ? theme.currentTheme.primaryColor.opacity(0.15)
-                                : (isHovered ? Color.primary.opacity(0.08) : Color.clear)
+                                ? theme.currentTheme.primaryColor.opacity(0.12)
+                                : (isHovered ? Color.primary.opacity(0.06) : Color.clear)
                         )
                 )
+                .scaleEffect(isHovered ? 1.05 : 1.0)
+                .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isHovered)
+                .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isSelected)
         }
         .buttonStyle(.plain)
         .onHover { hovering in
-            withAnimation(.easeInOut(duration: 0.15)) {
                 isHovered = hovering
-            }
         }
     }
 }
@@ -57,13 +59,13 @@ struct PlainHoverButtonStyle: ButtonStyle {
     
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .scaleEffect(configuration.isPressed ? 0.95 : 1.0)
+            .scaleEffect(configuration.isPressed ? 0.94 : (isHovered ? 1.02 : 1.0))
             .background(
-                RoundedRectangle(cornerRadius: 6)
-                    .fill(isHovered ? Color.primary.opacity(0.08) : Color.clear)
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(isHovered ? Color.primary.opacity(0.06) : Color.clear)
             )
-            .animation(.easeInOut(duration: 0.15), value: isHovered)
-            .animation(.easeInOut(duration: 0.1), value: configuration.isPressed)
+            .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isHovered)
+            .animation(.spring(response: 0.25, dampingFraction: 0.6), value: configuration.isPressed)
             .onHover { hovering in
                 isHovered = hovering
             }

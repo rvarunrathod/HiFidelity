@@ -66,7 +66,7 @@ struct AlbumsTabView: View {
                     ], spacing: 20) {
                         ForEach(Array(filteredAlbums.enumerated()), id: \.element.id) { index, album in
                             AlbumCard(album: album) {
-                                withAnimation(.easeInOut(duration: 0.2)) {
+                                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                                     selectedEntity = .album(album)
                                 }
                             }

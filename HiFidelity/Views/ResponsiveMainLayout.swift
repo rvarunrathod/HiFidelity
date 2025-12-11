@@ -28,9 +28,13 @@ struct ResponsiveMainLayout: View {
                             selectedEntity: $selectedEntity
                         )
                         .frame(width: calculateSidebarWidth(for: geometry.size))
-                        .transition(.move(edge: .leading).combined(with: .opacity))
+                        .transition(.asymmetric(
+                            insertion: .move(edge: .leading).combined(with: .opacity),
+                            removal: .move(edge: .leading).combined(with: .opacity)
+                        ))
                         
                         Divider()
+                            .transition(.opacity)
                     }
                     
                     // Center: Main Content
@@ -43,14 +47,18 @@ struct ResponsiveMainLayout: View {
                     // Right: Tabbed Panel (toggleable)
                     if showRightPanel {
                         Divider()
+                            .transition(.opacity)
                         
                         RightPanelView(selectedTab: $rightPanelTab)
                             .frame(width: calculateRightPanelWidth(for: geometry.size))
-                            .transition(.move(edge: .trailing).combined(with: .opacity))
+                            .transition(.asymmetric(
+                                insertion: .move(edge: .trailing).combined(with: .opacity),
+                                removal: .move(edge: .trailing).combined(with: .opacity)
+                            ))
                     }
                 }
-                .animation(.easeInOut(duration: 0.5), value: showLeftSidebar)
-                .animation(.easeInOut(duration: 0.5), value: showRightPanel)
+                .animation(.spring(response: 0.4, dampingFraction: 0.8), value: showLeftSidebar)
+                .animation(.spring(response: 0.4, dampingFraction: 0.8), value: showRightPanel)
                 
                 // Bottom: Playback Bar (overlaid)
                 VStack {

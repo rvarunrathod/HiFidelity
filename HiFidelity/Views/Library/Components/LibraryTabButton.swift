@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-/// Tab button for library navigation
+/// Tab button for library navigation - LINE Design System Segmented Control Style
 struct LibraryTabButton: View {
     let title: String
     let icon: String
@@ -19,28 +19,33 @@ struct LibraryTabButton: View {
     
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 8) {
+            HStack(spacing: 7) {
                 Image(systemName: icon)
-                    .font(.system(size: 16, weight: .medium))
+                    .font(.system(size: 14, weight: isSelected ? .semibold : .medium))
+                    .fixedSize()
+                    .frame(width: 16, height: 16)
                 
                 Text(title)
-                    .font(.system(size: 13, weight: isSelected ? .semibold : .medium))
+                    .font(.system(size: 14, weight: isSelected ? .semibold : .medium))
+                    .fixedSize()
             }
-            .foregroundColor(isSelected ? .white : .primary)
-            .padding(.horizontal, 14)
-            .padding(.vertical, 8)
+            .foregroundStyle(isSelected ? Color.white : Color.primary)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 9)
+            .frame(height: 36)
             .background(
-                RoundedRectangle(cornerRadius: 20)
-                    .fill(isSelected ? theme.currentTheme.primaryColor : (isHovered ? Color(nsColor: .controlBackgroundColor) : Color.clear))
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(isSelected ? theme.currentTheme.primaryColor.opacity(0.80) : (isHovered ? Color.primary.opacity(0.06) : Color.clear))
+                    .shadow(color: isSelected ? theme.currentTheme.primaryColor.opacity(0.3) : .clear, radius: isSelected ? 4 : 0, y: 1)
             )
-            .frame(height: 28)
+            .scaleEffect(isHovered && !isSelected ? 1.02 : 1.0)
+            .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isHovered)
+            .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isSelected)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .onHover { hovering in
-            withAnimation(.easeInOut(duration: 0.15)) {
-                isHovered = hovering
-            }
+            isHovered = hovering
         }
     }
 }

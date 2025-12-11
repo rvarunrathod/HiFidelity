@@ -92,7 +92,7 @@ struct ModernPlayerLayout: View {
         }
         .environmentObject(trackInfoManager)
         .onChange(of: trackInfoManager.isVisible) { _, isVisible in
-            withAnimation(.easeInOut(duration: 0.25)) {
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
                 if isVisible {
                     showRightPanel = true
                     rightPanelTab = .trackInfo
@@ -106,11 +106,13 @@ struct ModernPlayerLayout: View {
         }
         .onChange(of: selectedTab) { _, _ in
             // Clear entity selection when switching tabs
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
             selectedEntity = nil
+            }
         }
         .onReceive(NotificationCenter.default.publisher(for: .goToHome)) { _ in
             // Clear entity selection when home button is clicked
-            withAnimation(.easeInOut(duration: 0.2)) {
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                 selectedEntity = nil
             }
         }

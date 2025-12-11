@@ -32,7 +32,7 @@
 
 
 
-![Home View - Albums](docs/images/Home-page-albums.png)
+![HiFidelity Music Player](docs/images/musicPlayer.png)
 
 
 ---
@@ -62,30 +62,41 @@
 - ~~Automatic scanning and updating of the music library~~ ( ✅ [1.0.4](https://github.com/rvarunrathod/HiFidelity/releases/tag/v1.0.4) )
 - ~~A compact Mini Player mode~~ ( ✅ [1.0.5](https://github.com/rvarunrathod/HiFidelity/releases/tag/v1.0.5) )
 - ReplayGain and volume normalization 
-- let user change audio output device from UI
-- Audio visualizers  (waveform / spectrum)
-
+- Let user change audio output device from UI
+- Audio visualizers (waveform / spectrum)
 - ... 
 
-## 📷 Screenshots
-
-#### Library Views
-<div align="center">
-  <img src="docs/images/Album-view.png" alt="Album View" width="600" style="margin: 10px;">
-  <img src="docs/images/Home-page-artists.png" alt="Artists View" width="600" style="margin: 10px;">
-  <img src="docs/images/Home-page-tracks.png" alt="Tracks View" width="600" style="margin: 10px;">
-</div>
+## 📷 Screenshots & Demos
 
 #### Audio Features
 <div align="center">
   <img src="docs/images/Equalizer.png" alt="Equalizer" width="600" style="margin: 10px;">
 </div>
 
-#### Smart Features
+#### Smart Features & Demos
 <div align="center">
-  <img src="docs/images/Autoplay-queue.png" alt="Autoplay Queue" height="400" style="margin: 10px;">
-  <img src="docs/images/Lyrics%20support.png" alt="Lyrics Support" height="400" style="margin: 10px;">
-  <img src="docs/images/Search-view.png" alt="Search View" height="500" width="600" style="margin: 10px;">
+  <table border="0">
+    <tr>
+      <td width="50%" align="center">
+        <b>Mini Player</b><br>
+        <video src="docs/images/miniplayer.mov" controls width="100%"></video>
+      </td>
+      <td width="50%" align="center">
+        <b>Lyrics Support</b><br>
+        <video src="docs/images/Lyrics.mov" controls width="100%"></video>
+      </td>
+    </tr>
+    <tr>
+      <td width="50%" align="center">
+        <b>Advanced Search</b><br>
+        <video src="docs/images/search.mov" controls width="100%"></video>
+      </td>
+      <td width="50%" align="center">
+        <b>Autoplay Queue</b><br>
+        <video src="docs/images/Autoplay.mov" controls width="100%"></video>
+      </td>
+    </tr>
+  </table>
 </div>
 
 ## 🛠 Requirements

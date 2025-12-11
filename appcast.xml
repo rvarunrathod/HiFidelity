@@ -5,6 +5,27 @@
         <description>Updates for HiFidelity - High-Fidelity Music Player</description>
         <language>en</language>
         <item>
+            <title>Version 1.0.5</title>
+            <pubDate>Thu, 11 Dec 2025 15:58:05 +0530</pubDate>
+            <sparkle:version>105</sparkle:version>
+            <sparkle:shortVersionString>1.0.5</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <enclosure
+                url="https://github.com/rvarunrathod/HiFidelity/releases/download/v1.0.5/HiFidelity-1.0.5-Universal.dmg"
+                sparkle:edSignature="QVthuHhTV3Y2TQprYB7TqF3v/AM9Wou99bisSg6Zv98aKEhDuYS82gq4h1TUEXZLdaZXVFH5o1LjRN6Pivu3Cw=="
+                length="10114527"
+                type="application/octet-stream"
+            />
+            <description><![CDATA[
+                <h2>Improvement</h2>
+<ul>
+    <li>Implement **Mini player** with queue and lyrics display</li>
+    <li>Refactor UI components for improved visuals and interactions</li>
+</ul>
+<p><a href="https://github.com/rvarunrathod/HiFidelity/compare/v1.0.4...v1.0.5">Full Changelog</a></p>
+            ]]></description>
+        </item>
+        <item>
             <title>Version 1.0.4</title>
             <pubDate>Sun, 07 Dec 2025 18:28:21 +0530</pubDate>
             <sparkle:version>104</sparkle:version>

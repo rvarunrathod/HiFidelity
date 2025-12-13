@@ -10,6 +10,7 @@ import SwiftUI
 struct TrackInfoDisplay: View {
     @ObservedObject var playback = PlaybackController.shared
     @ObservedObject var theme = AppTheme.shared
+    @ObservedObject var settings = AudioSettings.shared
     
     var body: some View {
         HStack(spacing: 14) {
@@ -24,7 +25,7 @@ struct TrackInfoDisplay: View {
                 placeholderDetails
             }
         }
-        .frame(minWidth: 200, maxWidth: 300, alignment: .leading)
+        .frame(minWidth: 200, maxWidth: 240, alignment: .leading)
     }
     
     // MARK: - Artwork View
@@ -55,16 +56,24 @@ struct TrackInfoDisplay: View {
     // MARK: - Track Details
     
     private func trackDetails(for track: Track) -> some View {
-        VStack(alignment: .leading, spacing: 5) {
+        VStack(alignment: .leading, spacing: 3) {
             Text(track.title)
-                .font(.system(size: 14, weight: .semibold))
+                .font(.system(size: 12, weight: .semibold))
                 .lineLimit(1)
                 .foregroundColor(.primary)
             
             Text(track.artist)
-                .font(.system(size: 13, weight: .medium))
+                .font(.system(size: 12, weight: .medium))
                 .lineLimit(1)
                 .foregroundColor(.secondary.opacity(0.85))
+            
+            // Audio quality info from BASS
+            if let streamInfo = playback.currentStreamInfo {
+                Text(formatAudioQuality(streamInfo))
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundColor(.secondary.opacity(0.7))
+                    .monospacedDigit()
+            }
         }
     }
     
@@ -116,6 +125,31 @@ struct TrackInfoDisplay: View {
                 isHovered = hovering
             }
             .help(isFavorite ? "Remove from Favorites" : "Add to Favorites")
+        }
+    }
+    
+    // MARK: - Audio Quality Formatting
+    
+    private func formatAudioQuality(_ info: BASSStreamInfo) -> String {
+        let sampleRateKHz = Double(info.frequency) / 1000.0
+        let channels = channelDescription(info.channels)
+        
+        // Format: "24/96kHz Stereo" or just "44.1kHz Stereo" for 16-bit
+        if info.bitDepth > 16 {
+            return "\(info.bitDepth)/\(String(format: "%.1f", sampleRateKHz))kHz \(channels)"
+        } else {
+            return "\(String(format: "%.1f", sampleRateKHz))kHz \(channels)"
+        }
+    }
+    
+    private func channelDescription(_ channels: Int) -> String {
+        switch channels {
+        case 1: return "Mono"
+        case 2: return "Stereo"
+        case 4: return "4.0"
+        case 6: return "5.1"
+        case 8: return "7.1"
+        default: return "\(channels)ch"
         }
     }
 }

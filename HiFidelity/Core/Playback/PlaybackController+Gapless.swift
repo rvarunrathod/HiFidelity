@@ -65,7 +65,7 @@ extension PlaybackController {
         Logger.info("Pre-loading next track for gapless: \(track.title)")
         
         // Pre-load using BASS engine's dual-stream capability
-        let success = audioEngine.preloadNext(url: track.url)
+        let success = audioEngine.preloadNext(url: track.url, trackSampleRate: track.sampleRate)
         
         if success {
             isNextTrackPreloaded = true
@@ -114,14 +114,15 @@ extension PlaybackController {
         // Update current track
         currentTrack = track
         currentTime = 0
+        currentStreamInfo = nil // Will be updated when playback starts
         
         // Switch to pre-loaded stream (gapless)
-        let success = audioEngine.switchToPreloadedTrack(volume: Float(isMuted ? 0 : volume))
+        let success = audioEngine.switchToPreloadedTrack(volume: Float(isMuted ? 0 : volume), trackSampleRate: track.sampleRate)
         
         if !success {
             Logger.warning("Gapless switch failed, falling back to normal load")
             // Fallback: load and play normally
-            guard audioEngine.load(url: track.url) else {
+            guard audioEngine.load(url: track.url, trackSampleRate: track.sampleRate) else {
                 Logger.error("Failed to load track: \(track.title)")
                 return
             }
@@ -131,6 +132,10 @@ extension PlaybackController {
         
         duration = audioEngine.getDuration()
         isPlaying = true
+        
+        // Update stream info for the new track
+        currentStreamInfo = audioEngine.getStreamInfo()
+        
         startPositionTimer()
         
         // Reset gapless state and prepare next track

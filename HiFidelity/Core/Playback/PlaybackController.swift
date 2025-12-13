@@ -43,6 +43,9 @@ class PlaybackController: ObservableObject {
     @Published var repeatMode: RepeatMode = .off
     @Published var isShuffleEnabled: Bool = false
     
+    // Audio quality info
+    @Published var currentStreamInfo: BASSStreamInfo?
+    
     // Queue management
     @Published var queue: [Track] = []
     @Published var playbackHistory: [Track] = []
@@ -106,6 +109,103 @@ class PlaybackController: ObservableObject {
             name: .bassStreamEnded,
             object: nil
         )
+        
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleDeviceChanged),
+            name: .audioDeviceChanged,
+            object: nil
+        )
+        
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleDeviceRemoved),
+            name: .audioDeviceRemoved,
+            object: nil
+        )
+        
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleDeviceChangeComplete),
+            name: .audioDeviceChangeComplete,
+            object: nil
+        )
+    }
+    
+    @objc private func handleDeviceChanged(_ notification: Notification) {
+        guard let device = notification.object as? AudioOutputDevice else { return }
+        
+        Logger.info("Audio device changed to: \(device.name)")
+        
+        // BASSAudioEngine will attempt to move streams to the new device
+        // Wait for the completion notification to see if reload is needed
+    }
+    
+    @objc private func handleDeviceChangeComplete(_ notification: Notification) {
+        guard let userInfo = notification.userInfo,
+              let needsReload = userInfo["needsReload"] as? Bool else {
+            return
+        }
+        
+        if needsReload, let track = currentTrack {
+            Logger.info("Reloading track on new device: \(track.title)")
+            
+            // Save playback state
+            let wasPlaying = isPlaying
+            let savedPosition = currentTime
+            
+            // Reload the track
+            guard audioEngine.load(url: track.url, trackSampleRate: track.sampleRate) else {
+                Logger.error("Failed to reload track on new device")
+                return
+            }
+            
+            duration = audioEngine.getDuration()
+            audioEngine.setVolume(Float(isMuted ? 0 : volume))
+            
+            // Restore position
+            if savedPosition > 0 && savedPosition < duration {
+                _ = audioEngine.seek(to: savedPosition)
+                currentTime = savedPosition
+            }
+            
+            // Resume playback if it was playing
+            if wasPlaying {
+                _ = audioEngine.play()
+                isPlaying = true
+                startPositionTimer()
+                Logger.info("✓ Resumed playback on new device at \(savedPosition)s")
+            }
+            
+            // Update stream info after reload
+            currentStreamInfo = audioEngine.getStreamInfo()
+        } else {
+            Logger.info("Stream successfully moved to new device without reload")
+            
+            // Update stream info even if not reloaded
+            currentStreamInfo = audioEngine.getStreamInfo()
+        }
+    }
+    
+    @objc private func handleDeviceRemoved(_ notification: Notification) {
+        Logger.warning("⚠️ Audio device was removed - stopping playback")
+        
+        // Stop playback immediately
+        if isPlaying {
+            pause()
+        }
+        
+        // Clear the audio engine
+        audioEngine.stop()
+        
+        // Show notification to user
+        DispatchQueue.main.async {
+            NotificationCenter.default.post(
+                name: .showNotification,
+                object: nil,
+                userInfo: ["message": "Audio device disconnected"]
+            )
+        }
     }
     
     @objc func handleStreamEnded() {

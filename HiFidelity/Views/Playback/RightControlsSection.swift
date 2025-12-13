@@ -37,11 +37,19 @@ struct RightControlsSection: View {
             
             Divider()
                 .frame(height: 24)
-            
-            // Volume control
-            VolumeControlSection()
+
+            HStack(spacing: 4) {
+                // Sample rate sync button
+                SampleRateSyncButton()
+
+                // Audio device selector
+                AudioDeviceSelector()
+                
+                // Volume control
+                VolumeControlSection()
+            }
         }
-        .frame(width: 340, alignment: .trailing)
+        .frame(width: 420, alignment: .trailing)
     }
     
     // MARK: - Actions
@@ -86,6 +94,30 @@ private struct PanelToggleButton: View {
     }
 }
 
+
+
+// MARK: - Sample Rate Sync Button
+
+/// Button to toggle sample rate synchronization (hog mode)
+struct SampleRateSyncButton: View {
+    @ObservedObject var settings = AudioSettings.shared
+    @ObservedObject var theme = AppTheme.shared
+    
+    var body: some View {
+        Button(action: {
+            settings.synchronizeSampleRate.toggle()
+        }) {
+            Image(systemName: settings.synchronizeSampleRate ? "lock.fill" : "lock")
+                .font(.system(size: 16))
+                .foregroundColor(settings.synchronizeSampleRate ? theme.currentTheme.primaryColor : .secondary)
+                .frame(width: 28, height: 28)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(PlainHoverButtonStyle())
+        .help(settings.synchronizeSampleRate ? "Disable Bit-Perfect Playback (Hog Mode Active)" : "Enable Bit-Perfect Playback (Hog Mode Active)")
+    }
+}
+
 // MARK: - Preview
 
 #Preview {
@@ -105,4 +137,3 @@ private struct PanelToggleButton: View {
     
     return PreviewWrapper()
 }
-

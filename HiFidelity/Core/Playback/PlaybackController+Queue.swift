@@ -84,6 +84,7 @@ extension PlaybackController {
         currentTrack = queue[index]
         currentTime = 0
         duration = 0 // Will be set when track loads
+        currentStreamInfo = nil // Clear old stream info
         
         // Reset gapless state
         isNextTrackPreloaded = false

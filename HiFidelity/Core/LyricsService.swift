@@ -32,7 +32,7 @@ final class LyricsService {
         
         // Set user agent as recommended by lrclib.net
         config.httpAdditionalHeaders = [
-            "User-Agent": "HiFidelity/1.0 (https://github.com/yourusername/hifidelity)"
+            "User-Agent": "HiFidelity/1.0 (https://github.com/rvarunrathod/HiFidelity)"
         ]
         
         self.session = URLSession(configuration: config)

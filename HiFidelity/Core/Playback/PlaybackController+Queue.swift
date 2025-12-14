@@ -91,6 +91,8 @@ extension PlaybackController {
         
         play()
         
+        currentStreamInfo = audioEngine.getStreamInfo()
+        
         // Pre-load next track for gapless playback
         prepareNextTrackForGapless()
     }

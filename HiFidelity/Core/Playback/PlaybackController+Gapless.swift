@@ -111,11 +111,7 @@ extension PlaybackController {
             playbackHistory.append(previous)
         }
         
-        // Update current track
-        currentTrack = track
-        currentTime = 0
-        
-        // Switch to pre-loaded stream (gapless)
+        // Switch to pre-loaded stream (gapless) BEFORE updating UI
         let success = audioEngine.switchToPreloadedTrack(volume: Float(isMuted ? 0 : volume))
         
         if !success {
@@ -131,6 +127,16 @@ extension PlaybackController {
         
         duration = audioEngine.getDuration()
         isPlaying = true
+        
+        // Get stream info for the new track BEFORE updating currentTrack
+        // This ensures UI updates happen with correct data
+        let newStreamInfo = audioEngine.getStreamInfo()
+        
+        // Now update UI state atomically
+        currentTrack = track
+        currentTime = 0
+        currentStreamInfo = newStreamInfo
+        
         startPositionTimer()
         
         // Reset gapless state and prepare next track

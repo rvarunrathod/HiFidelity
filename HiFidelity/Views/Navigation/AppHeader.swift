@@ -33,7 +33,7 @@ struct AppHeader: View {
             // Right: Controls
             trailingSection
         }
-        .padding(.horizontal, 20)
+        .padding(.horizontal, 6)
         .padding(.vertical, 14)
         .frame(height: 68)
         .background(headerBackground)
@@ -42,7 +42,7 @@ struct AppHeader: View {
     // MARK: - Leading Section
     
     private var leadingSection: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 2) {
             // App logo
             Image("HiFidelity long Logo")
                 .renderingMode(.template)
@@ -103,7 +103,7 @@ struct AppHeader: View {
     // MARK: - Trailing Section
     
     private var trailingSection: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 2) {
             // Right sidebar toggle
             ToggleButton(
                 icon: "sidebar.right",

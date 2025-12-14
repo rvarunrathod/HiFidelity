@@ -30,15 +30,12 @@ class AudioSettings: ObservableObject {
         }
     }
     
-    @Published var resamplingQuality: ResamplingQuality {
-        didSet { 
-            save(resamplingQuality.rawValue, forKey: .resamplingQuality)
+    // DAC/Hog Mode with Native Sample Rate Synchronization
+    // Not persisted - resets on app restart for safety
+    @Published var synchronizeSampleRate: Bool = false {
+        didSet {
             postNotification()
         }
-    }
-    
-    @Published var sampleRate: Int {
-        didSet { save(sampleRate, forKey: .sampleRate) }
     }
     
     // MARK: - Settings Keys
@@ -47,38 +44,9 @@ class AudioSettings: ObservableObject {
         case playbackVolume
         case gaplessPlayback
         case bufferLength
-        case resamplingQuality
-        case sampleRate
         
         var fullKey: String {
             return "audio.\(rawValue)"
-        }
-    }
-    
-    // MARK: - Enums
-    
-    enum ResamplingQuality: String, CaseIterable {
-        case linear = "Linear"
-        case good = "Good"
-        case better = "Better"
-        case best = "Best"
-        
-        var description: String {
-            switch self {
-            case .linear: return "Linear (Fastest)"
-            case .good: return "Good (8-point Sinc)"
-            case .better: return "Better (16-point Sinc)"
-            case .best: return "Best (32-point Sinc)"
-            }
-        }
-        
-        var bassValue: Int {
-            switch self {
-            case .linear: return 0
-            case .good: return 1
-            case .better: return 2
-            case .best: return 3
-            }
         }
     }
     
@@ -88,8 +56,6 @@ class AudioSettings: ObservableObject {
         // Initialize with default values
         self.playbackVolume = 0.7
         self.bufferLength = 500
-        self.resamplingQuality = .better
-        self.sampleRate = 44100
         
         // Load saved settings
         loadSettings()
@@ -98,12 +64,6 @@ class AudioSettings: ObservableObject {
     private func loadSettings() {
         self.playbackVolume = defaults.object(forKey: SettingsKey.playbackVolume.fullKey) as? Double ?? 0.7
         self.bufferLength = defaults.object(forKey: SettingsKey.bufferLength.fullKey) as? Int ?? 500
-        self.sampleRate = defaults.object(forKey: SettingsKey.sampleRate.fullKey) as? Int ?? 44100
-        
-        if let resamplingRaw = defaults.string(forKey: SettingsKey.resamplingQuality.fullKey),
-           let quality = ResamplingQuality(rawValue: resamplingRaw) {
-            self.resamplingQuality = quality
-        }
     }
     
     // MARK: - UserDefaults Helpers
@@ -121,17 +81,8 @@ class AudioSettings: ObservableObject {
     func resetToDefaults() {
         playbackVolume = 0.7
         bufferLength = 500
-        resamplingQuality = .better
-        sampleRate = 44100
         
         Logger.info("Audio settings reset to defaults")
     }
     
-    // MARK: - Sample Rate Options
-    
-    static let availableSampleRates = [44100, 48000, 88200, 96000, 176400, 192000]
-    
-    func getSampleRateDescription(_ rate: Int) -> String {
-        return "\(rate / 1000) kHz"
-    }
 }

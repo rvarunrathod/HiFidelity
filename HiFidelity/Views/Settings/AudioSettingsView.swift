@@ -10,10 +10,17 @@ import SwiftUI
 struct AudioSettingsView: View {
     @ObservedObject var settings = AudioSettings.shared
     @ObservedObject var effectsManager = AudioEffectsManager.shared
-    @State private var showDeviceChangeAlert = false
     
     var body: some View {
         VStack(alignment: .leading, spacing: 24) {
+
+            // Output Device// Output Device
+            settingsSection(title: "Output Device", icon: "speaker.wave.3") {
+                deviceSettings
+            }
+            
+            Divider()
+
             // Audio Effects
             settingsSection(title: "Audio Effects", icon: "waveform.badge.magnifyingglass") {
                 effectsSettings
@@ -28,12 +35,7 @@ struct AudioSettingsView: View {
             
             Divider()
             
-            // Output Device
-            settingsSection(title: "Output Device", icon: "speaker.wave.3") {
-                deviceSettings
-            }
             
-            Divider()
             
             // Reset Button
             HStack {
@@ -44,11 +46,6 @@ struct AudioSettingsView: View {
                 .buttonStyle(.bordered)
             }
             .padding(.top, 8)
-        }
-        .alert("Device Change Requires Restart", isPresented: $showDeviceChangeAlert) {
-            Button("OK") { }
-        } message: {
-            Text("Changing audio device or sample rate will take effect when you restart the application.")
         }
     }
     
@@ -93,20 +90,6 @@ struct AudioSettingsView: View {
     
     private var qualitySettings: some View {
         VStack(alignment: .leading, spacing: 16) {
-            // Resampling Quality
-            settingRow(
-                label: "Resampling Quality",
-                description: "Quality of sample rate conversion"
-            ) {
-                Picker("", selection: $settings.resamplingQuality) {
-                    ForEach(AudioSettings.ResamplingQuality.allCases, id: \.self) { quality in
-                        Text(quality.description).tag(quality)
-                    }
-                }
-                .pickerStyle(.menu)
-                .frame(width: 200)
-            }
-            
             // Buffer Length
             settingRow(
                 label: "Audio Buffer",
@@ -129,23 +112,30 @@ struct AudioSettingsView: View {
     
     private var deviceSettings: some View {
         VStack(alignment: .leading, spacing: 16) {
-            // Sample Rate
+            // Synchronize Sample Rate
             settingRow(
-                label: "Sample Rate",
-                description: "Audio output sample rate (restart required)"
+                label: "Synchronize Sample Rate with Music Player (Hog mode)",
+                description: "Enable exclusive audio access for bit-perfect playback"
             ) {
-                Picker("", selection: $settings.sampleRate) {
-                    ForEach(AudioSettings.availableSampleRates, id: \.self) { rate in
-                        Text(settings.getSampleRateDescription(rate)).tag(rate)
-                    }
-                }
-                .onChange(of: settings.sampleRate) { _, _ in
-                    showDeviceChangeAlert = true
-                }
-                .pickerStyle(.menu)
-                .frame(width: 120)
+                Toggle("", isOn: $settings.synchronizeSampleRate)
+                    .toggleStyle(.switch)
             }
             
+            // Info text when enabled
+            if settings.synchronizeSampleRate {
+                HStack(spacing: 8) {
+                    Image(systemName: "info.circle")
+                        .foregroundColor(.secondary)
+                        .font(.system(size: 12))
+                    
+                    Text("When enabled, the app takes exclusive control (hog mode) of your audio device and automatically switches the device sample rate to match each track (44.1kHz, 48kHz, 96kHz, etc.) preventing BASS from resampling for true bit-perfect playback.")
+                        .font(.system(size: 11))
+                        .foregroundColor(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(.vertical, 8)
+                .padding(.horizontal, 4)
+            }
         }
     }
     

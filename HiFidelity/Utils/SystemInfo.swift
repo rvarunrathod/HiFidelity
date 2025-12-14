@@ -136,6 +136,7 @@ final class SystemInfo {
         for (index, device) in outputDevices.enumerated() {
             let prefix = device.isDefault ? "    [DEFAULT]" : "           "
             Logger.info("\(prefix) \(index + 1). \(device.name)")
+            Logger.info("              UID: \(Int(device.uid))")
             if let sampleRate = device.sampleRate {
                 Logger.info("              Sample Rate: \(Int(sampleRate)) Hz")
             }
@@ -150,6 +151,7 @@ final class SystemInfo {
         for (index, device) in inputDevices.enumerated() {
             let prefix = device.isDefault ? "    [DEFAULT]" : "           "
             Logger.info("\(prefix) \(index + 1). \(device.name)")
+            Logger.info("              UID: \(Int(device.uid))")
             if let sampleRate = device.sampleRate {
                 Logger.info("              Sample Rate: \(Int(sampleRate)) Hz")
             }
@@ -339,6 +341,7 @@ final class SystemInfo {
             }
             
             devices.append(AudioDeviceInfo(
+                uid: deviceID,
                 name: deviceNameRef,
                 isDefault: deviceID == defaultDeviceID,
                 sampleRate: hasSampleRate ? sampleRate : nil,
@@ -403,6 +406,7 @@ final class SystemInfo {
 // MARK: - Supporting Types
 
 private struct AudioDeviceInfo {
+    let uid: UInt32
     let name: String
     let isDefault: Bool
     let sampleRate: Float64?

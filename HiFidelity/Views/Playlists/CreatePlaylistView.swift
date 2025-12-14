@@ -24,6 +24,8 @@ struct CreatePlaylistView: View {
     @State private var isCreating = false
     @State private var showError = false
     @State private var errorMessage = ""
+    @State private var showImportSuccess = false
+    @State private var importMessage = ""
     
     var body: some View {
         VStack(spacing: 0) {
@@ -59,6 +61,13 @@ struct CreatePlaylistView: View {
         } message: {
             Text(errorMessage)
         }
+        .alert("Import Success", isPresented: $showImportSuccess) {
+            Button("OK", role: .cancel) {
+                dismiss()
+            }
+        } message: {
+            Text(importMessage)
+        }
     }
     
     // MARK: - Header
@@ -69,6 +78,48 @@ struct CreatePlaylistView: View {
                 .font(.system(size: 20, weight: .bold))
             
             Spacer()
+            
+            HStack(spacing: 8) {
+                Button {
+                    importFromM3U()
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "square.and.arrow.down")
+                            .font(.system(size: 14))
+                        Text("Import M3U")
+                            .font(.system(size: 13, weight: .medium))
+                    }
+                    .foregroundColor(theme.currentTheme.primaryColor)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(
+                        RoundedRectangle(cornerRadius: 6)
+                            .fill(theme.currentTheme.primaryColor.opacity(0.1))
+                    )
+                }
+                .buttonStyle(.plain)
+                .help("Import playlists from M3U files (up to 10 files)")
+                
+                Button {
+                    importFromFolder()
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "folder.badge.plus")
+                            .font(.system(size: 14))
+                        Text("Import Folder")
+                            .font(.system(size: 13, weight: .medium))
+                    }
+                    .foregroundColor(theme.currentTheme.primaryColor)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(
+                        RoundedRectangle(cornerRadius: 6)
+                            .fill(theme.currentTheme.primaryColor.opacity(0.1))
+                    )
+                }
+                .buttonStyle(.plain)
+                .help("Import playlists from folders (up to 10 folders)")
+            }
             
             Button {
                 dismiss()
@@ -369,6 +420,131 @@ struct CreatePlaylistView: View {
             errorMessage = "Failed to create playlist: \(error.localizedDescription)"
             showError = true
             Logger.error("Failed to create playlist: \(error)")
+        }
+    }
+    
+    private func importFromM3U() {
+        let panel = NSOpenPanel()
+        panel.allowsMultipleSelection = true
+        panel.canChooseDirectories = false
+        panel.canChooseFiles = true
+        panel.allowedContentTypes = [.init(filenameExtension: "m3u")!, .init(filenameExtension: "m3u8")!]
+        panel.message = "Choose M3U playlist files to import (max 10)"
+        
+        if panel.runModal() == .OK {
+            let urls = panel.urls
+            
+            guard !urls.isEmpty else { return }
+            
+            Task {
+                isCreating = true
+                defer { isCreating = false }
+                
+                do {
+                    if urls.count == 1, let url = urls.first {
+                        // Single file import
+                        let result = try await databaseManager.importPlaylistFromM3U(m3uURL: url)
+                        
+                        // Show success message
+                        importMessage = "Successfully imported '\(result.playlist.name)'\n\(result.foundCount) tracks added"
+                        if result.skippedCount > 0 {
+                            importMessage += "\n\(result.skippedCount) tracks not found in library"
+                        }
+                        showImportSuccess = true
+                        
+                        Logger.info("M3U Import: Success - \(result.foundCount) found, \(result.skippedCount) skipped")
+                    } else {
+                        // Multiple files import
+                        let results = try await databaseManager.importMultiplePlaylistsFromM3U(m3uURLs: urls)
+                        
+                        if results.isEmpty {
+                            errorMessage = "Failed to import any playlists"
+                            showError = true
+                            return
+                        }
+                        
+                        // Calculate totals
+                        let totalPlaylists = results.count
+                        let totalTracks = results.reduce(0) { $0 + $1.foundCount }
+                        let totalSkipped = results.reduce(0) { $0 + $1.skippedCount }
+                        
+                        // Show success message
+                        importMessage = "Successfully imported \(totalPlaylists) playlist\(totalPlaylists == 1 ? "" : "s")\n\(totalTracks) tracks added"
+                        if totalSkipped > 0 {
+                            importMessage += "\n\(totalSkipped) tracks not found in library"
+                        }
+                        showImportSuccess = true
+                        
+                        Logger.info("M3U Import: \(totalPlaylists) playlists imported - \(totalTracks) found, \(totalSkipped) skipped")
+                    }
+                } catch {
+                    errorMessage = "Failed to import M3U playlist(s): \(error.localizedDescription)"
+                    showError = true
+                    Logger.error("Failed to import M3U: \(error)")
+                }
+            }
+        }
+    }
+    
+    private func importFromFolder() {
+        let panel = NSOpenPanel()
+        panel.allowsMultipleSelection = true
+        panel.canChooseDirectories = true
+        panel.canChooseFiles = false
+        panel.message = "Choose folders to import as playlists (max 10)"
+        
+        if panel.runModal() == .OK {
+            let urls = panel.urls
+            
+            guard !urls.isEmpty else { return }
+            
+            Task {
+                isCreating = true
+                defer { isCreating = false }
+                
+                do {
+                    if urls.count == 1, let url = urls.first {
+                        // Single folder import
+                        let result = try await databaseManager.importPlaylistFromFolder(folderURL: url)
+                        
+                        // Show success message
+                        importMessage = "Successfully imported '\(result.playlist.name)'\n\(result.foundCount) tracks added"
+                        if result.skippedCount > 0 {
+                            importMessage += "\n\(result.skippedCount) tracks not found in library"
+                        }
+                        showImportSuccess = true
+                        
+                        Logger.info("Folder Import: Success - \(result.foundCount) found, \(result.skippedCount) skipped")
+                    } else {
+                        // Multiple folders import
+                        let results = try await databaseManager.importMultiplePlaylistsFromFolders(folderURLs: urls)
+                        
+                        if results.isEmpty {
+                            errorMessage = "Failed to import any folders"
+                            showError = true
+                            return
+                        }
+                        
+                        // Calculate totals
+                        let totalPlaylists = results.count
+                        let totalTracks = results.reduce(0) { $0 + $1.foundCount }
+                        let totalSkipped = results.reduce(0) { $0 + $1.skippedCount }
+                        
+                        // Show success message
+                        importMessage = "Successfully imported \(totalPlaylists) playlist\(totalPlaylists == 1 ? "" : "s") from folders\n\(totalTracks) tracks added"
+                        if totalSkipped > 0 {
+                            importMessage += "\n\(totalSkipped) tracks not found in library"
+                        }
+                        showImportSuccess = true
+                        
+                        Logger.info("Folder Import: \(totalPlaylists) playlists imported - \(totalTracks) found, \(totalSkipped) skipped")
+                    }
+                } catch {
+                    errorMessage = "Failed to import folder(s): \(error.localizedDescription)"
+                    showError = true
+                    Logger.error("Failed to import folder: \(error)")
+                }
+            }
         }
     }
 }

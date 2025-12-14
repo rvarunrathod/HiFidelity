@@ -142,10 +142,15 @@ class PlaybackController: ObservableObject {
     }
     
     @objc private func handleDeviceChangeComplete(_ notification: Notification) {
+        Logger.debug("Device change complete notification received")
+        
         guard let userInfo = notification.userInfo,
               let needsReload = userInfo["needsReload"] as? Bool else {
+            Logger.warning("Device change complete but no userInfo")
             return
         }
+        
+        Logger.debug("needsReload: \(needsReload), currentTrack: \(currentTrack?.title ?? "none")")
         
         if needsReload, let track = currentTrack {
             Logger.info("Reloading track on new device: \(track.title)")
@@ -155,7 +160,7 @@ class PlaybackController: ObservableObject {
             let savedPosition = currentTime
             
             // Reload the track
-            guard audioEngine.load(url: track.url, trackSampleRate: track.sampleRate) else {
+            guard audioEngine.load(url: track.url) else {
                 Logger.error("Failed to reload track on new device")
                 return
             }
@@ -175,37 +180,35 @@ class PlaybackController: ObservableObject {
                 isPlaying = true
                 startPositionTimer()
                 Logger.info("✓ Resumed playback on new device at \(savedPosition)s")
+            } else {
+                Logger.info("✓ Track reloaded on new device - ready to play")
             }
             
             // Update stream info after reload
             currentStreamInfo = audioEngine.getStreamInfo()
-        } else {
+        } else if !needsReload {
             Logger.info("Stream successfully moved to new device without reload")
             
             // Update stream info even if not reloaded
             currentStreamInfo = audioEngine.getStreamInfo()
+        } else {
+            Logger.warning("Device change complete but no track to reload")
         }
     }
     
     @objc private func handleDeviceRemoved(_ notification: Notification) {
-        Logger.warning("⚠️ Audio device was removed - stopping playback")
+        Logger.warning("⚠️ Audio device was removed - pausing playback")
         
-        // Stop playback immediately
+        // Pause playback
         if isPlaying {
             pause()
         }
         
-        // Clear the audio engine
+        // Clear the audio engine's streams (they reference invalid device)
         audioEngine.stop()
         
-        // Show notification to user
-        DispatchQueue.main.async {
-            NotificationCenter.default.post(
-                name: .showNotification,
-                object: nil,
-                userInfo: ["message": "Audio device disconnected"]
-            )
-        }
+        // DACManager will auto-switch to default device and post audioDeviceChanged
+        // Since stream is cleared, handleDeviceChangeComplete will reload the track
     }
     
     @objc func handleStreamEnded() {

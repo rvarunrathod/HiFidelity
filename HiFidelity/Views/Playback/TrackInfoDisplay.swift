@@ -8,31 +8,49 @@ import SwiftUI
 
 /// Display current playing track information with artwork and favorite button
 struct TrackInfoDisplay: View {
-    @ObservedObject var playback = PlaybackController.shared
+    // Don't observe the entire PlaybackController to avoid re-renders on currentTime updates
+    private let playback = PlaybackController.shared
     @ObservedObject var theme = AppTheme.shared
-    @ObservedObject var settings = AudioSettings.shared
+    
+    // Only observe the specific properties we need for this view
+    @State private var currentTrack: Track?
+    @State private var cachedAudioQuality: String = ""
     
     var body: some View {
-        HStack(spacing: 14) {
+        HStack(spacing: 8) {
             // Album artwork
             artworkView
             
             // Track details and favorite
-            if let track = playback.currentTrack {
-                trackDetails(for: track)
-                favoriteButton(for: track)
+            if let track = currentTrack {
+                HStack(spacing: 4) {
+                    trackDetails(for: track)
+                    favoriteButton(for: track)
+                }
             } else {
                 placeholderDetails
             }
         }
         .frame(minWidth: 200, maxWidth: 240, alignment: .leading)
+        .onReceive(playback.$currentTrack) { track in
+            currentTrack = track
+            updateCachedAudioQuality()
+        }
+        .onReceive(playback.$currentStreamInfo) { _ in
+            // Also update when streamInfo changes directly
+            updateCachedAudioQuality()
+        }
+        .onAppear {
+            currentTrack = playback.currentTrack
+            updateCachedAudioQuality()
+        }
     }
     
     // MARK: - Artwork View
     
     @ViewBuilder
     private var artworkView: some View {
-        if let track = playback.currentTrack {
+        if let track = currentTrack {
             TrackArtworkView(track: track, size: 56, cornerRadius: 6)
                 .shadow(color: .black.opacity(0.15), radius: 6, y: 3)
         } else {
@@ -67,9 +85,9 @@ struct TrackInfoDisplay: View {
                 .lineLimit(1)
                 .foregroundColor(.secondary.opacity(0.85))
             
-            // Audio quality info from BASS
-            if let streamInfo = playback.currentStreamInfo {
-                Text(formatAudioQuality(streamInfo))
+            // Audio quality info from BASS - uses cached string for performance
+            if !cachedAudioQuality.isEmpty {
+                Text(cachedAudioQuality)
                     .font(.system(size: 10, weight: .medium))
                     .foregroundColor(.secondary.opacity(0.7))
                     .monospacedDigit()
@@ -130,15 +148,26 @@ struct TrackInfoDisplay: View {
     
     // MARK: - Audio Quality Formatting
     
+    /// Format audio quality string - only called when streamInfo changes
     private func formatAudioQuality(_ info: BASSStreamInfo) -> String {
         let sampleRateKHz = Double(info.frequency) / 1000.0
         let channels = channelDescription(info.channels)
+        let bitrateKbps = info.bitrate / 1000
         
-        // Format: "24/96kHz Stereo" or just "44.1kHz Stereo" for 16-bit
-        if info.bitDepth > 16 {
-            return "\(info.bitDepth)/\(String(format: "%.1f", sampleRateKHz))kHz \(channels)"
+        // Format: "24/96kHz 2304kbps Stereo" or "44.1kHz 1411kbps Stereo" for 16-bit
+        if info.bitDepth > 0 {
+            return "\(bitrateKbps)kbps \(channels)\n\(info.bitDepth)/\(String(format: "%.1f", sampleRateKHz))kHz "
         } else {
-            return "\(String(format: "%.1f", sampleRateKHz))kHz \(channels)"
+            return "\(bitrateKbps)kbps \(channels)\n\(String(format: "%.1f", sampleRateKHz))kHz"
+        }
+    }
+    
+    /// Update cached audio quality when streamInfo changes
+    private func updateCachedAudioQuality() {
+        if let streamInfo = playback.currentStreamInfo {
+            cachedAudioQuality = formatAudioQuality(streamInfo)
+        } else {
+            cachedAudioQuality = ""
         }
     }
     

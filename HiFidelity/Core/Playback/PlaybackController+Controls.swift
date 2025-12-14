@@ -16,7 +16,7 @@ extension PlaybackController {
         // If track has ended (currentTime >= duration), restart from beginning
         if currentTime >= duration && duration > 0 {
             currentTime = 0
-            guard audioEngine.load(url: track.url, trackSampleRate: track.sampleRate) else {
+            guard audioEngine.load(url: track.url) else {
                 Logger.error("Failed to reload track: \(track.title)")
                 return
             }
@@ -28,7 +28,7 @@ extension PlaybackController {
         }
         // Load track if not already loaded
         else if !audioEngine.isPlaying() && currentTime == 0 {
-            guard audioEngine.load(url: track.url, trackSampleRate: track.sampleRate) else {
+            guard audioEngine.load(url: track.url) else {
                 Logger.error("Failed to load track: \(track.title)")
                 return
             }
@@ -103,7 +103,7 @@ extension PlaybackController {
             }
             
             Logger.info("Track not loaded, reloading for seek...")
-            guard audioEngine.load(url: track.url, trackSampleRate: track.sampleRate) else {
+            guard audioEngine.load(url: track.url) else {
                 Logger.error("Failed to reload track for seeking")
                 return
             }

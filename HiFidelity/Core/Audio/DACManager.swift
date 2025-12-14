@@ -116,6 +116,11 @@ class DACManager: ObservableObject {
             return false
         }
         
+        guard !isHogging else {
+            Logger.debug("Hog mode already enabled")
+            return true
+        }
+        
         var hogPID = pid_t(getpid())
         let propertySize = UInt32(MemoryLayout<pid_t>.size)
         
@@ -140,7 +145,10 @@ class DACManager: ObservableObject {
         }
         
         isHogging = true
-        Logger.info("Hog mode enabled on device \(currentDeviceID) - BASS handles sample rate conversion")
+        Logger.info("Hog mode enabled on device \(currentDeviceID) - BASS handles sample rate conversion")        
+        // Notify that device needs reacquisition in BASS
+        NotificationCenter.default.post(name: .audioDeviceNeedsReacquisition, object: nil)
+        
         return true
     }
     
@@ -348,6 +356,7 @@ extension Notification.Name {
     static let audioDeviceChanged = Notification.Name("AudioDeviceChanged")
     static let audioDeviceRemoved = Notification.Name("AudioDeviceRemoved")
     static let audioDeviceChangeComplete = Notification.Name("AudioDeviceChangeComplete")
+    static let audioDeviceNeedsReacquisition = Notification.Name("AudioDeviceNeedsReacquisition")
 }
 
 extension DACManager {
@@ -411,20 +420,26 @@ extension DACManager {
         
         // Get previous device list
         let previousDeviceIDs = Set(availableDevices.map { $0.id })
+        Logger.debug("Previous device IDs: \(previousDeviceIDs), current device ID: \(currentDeviceID)")
         
         // Refresh device list
         refreshDeviceList()
         
         // Get new device list
         let currentDeviceIDs = Set(availableDevices.map { $0.id })
+        Logger.debug("Current device IDs: \(currentDeviceIDs)")
         
         // Check for removed devices
         let removedDevices = previousDeviceIDs.subtracting(currentDeviceIDs)
         
         // Check if current device was removed
-        if removedDevices.contains(currentDeviceID) {
-            Logger.warning("⚠️ Current audio device was removed!")
+        // Handle two cases: 1) explicit device ID removed, 2) currentDeviceID is 0/invalid and devices were removed
+        if (currentDeviceID != 0 && removedDevices.contains(currentDeviceID)) || 
+           (currentDeviceID == 0 && !removedDevices.isEmpty && !previousDeviceIDs.isEmpty) {
+            Logger.warning("⚠️ Current audio device (ID: \(currentDeviceID)) was removed or invalid!")
             handleCurrentDeviceRemoved()
+        } else if !removedDevices.isEmpty {
+            Logger.debug("Removed devices: \(removedDevices) (not current device)")
         }
         
         // Check for added devices
@@ -440,11 +455,19 @@ extension DACManager {
     
     /// Handle current device being removed
     private func handleCurrentDeviceRemoved() {
-        deviceWasRemoved = true
+        // Release hog mode if active (device is gone, just clear the flag)
+        let wasHogging = isHogging
+        if wasHogging {
+            isHogging = false
+            Logger.info("Sample rate synchronization disabled - device was removed")
+        }
         
-        // Release hog mode if active
-        if isHogging {
-            isHogging = false // Just set flag, device is gone
+        // Update UI state on main thread
+        DispatchQueue.main.async { [weak self] in
+            self?.deviceWasRemoved = true
+            if wasHogging {
+                AudioSettings.shared.synchronizeSampleRate = false
+            }
         }
         
         // Post notification to stop playback
@@ -453,29 +476,126 @@ extension DACManager {
             object: nil
         )
         
-        // Try to switch to default device
+        // Refresh device list to get latest available devices
+        refreshDeviceList()
+        
+        // Get the latest default device from the system
         let defaultDeviceID = getDefaultOutputDevice()
-        if defaultDeviceID != 0, let newDevice = availableDevices.first(where: { $0.id == defaultDeviceID }) {
-            Logger.info("Switching to default device: \(newDevice.name)")
-            
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-                _ = self?.switchToDevice(newDevice)
-                self?.deviceWasRemoved = false
+        
+        if defaultDeviceID != 0 {
+            // Build device info for the new default device
+            if let deviceName = getDeviceNameForID(defaultDeviceID),
+               let deviceUID = getDeviceUIDForID(defaultDeviceID) {
+                
+                let sampleRate = getCurrentSampleRateForDevice(defaultDeviceID)
+                let channels = getChannelCountForDevice(defaultDeviceID)
+                
+                let newDevice = AudioOutputDevice(
+                    id: defaultDeviceID,
+                    name: deviceName,
+                    uid: deviceUID,
+                    sampleRate: sampleRate,
+                    channels: channels
+                )
+                
+                Logger.info("Auto-switching to default device: \(newDevice.name)")
+                if wasHogging {
+                    Logger.info("Sample rate synchronization was disabled - re-enable manually if needed")
+                }
+                
+                // Update device on main thread (for UI updates) and post notification
+                DispatchQueue.main.async { [weak self] in
+                    guard let self = self else { return }
+                    
+                    // Update to new device (triggers @Published updates for UI)
+                    self.currentDeviceID = defaultDeviceID
+                    self.currentDevice = newDevice
+                    Logger.debug("Updated currentDeviceID to \(defaultDeviceID)")
+                    
+                    // Wait a bit for device to stabilize, then notify BASS
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+                        Logger.info("Posting audioDeviceChanged notification for: \(newDevice.name)")
+                        NotificationCenter.default.post(name: .audioDeviceChanged, object: newDevice)
+                        self?.deviceWasRemoved = false
+                    }
+                }
+            } else {
+                // Couldn't get info for "default" device - fallback to first available device
+                Logger.warning("Could not get info for default device ID: \(defaultDeviceID), using first available device")
+                
+                if let firstDevice = availableDevices.first {
+                    Logger.info("Auto-switching to first available device: \(firstDevice.name)")
+                    
+                    DispatchQueue.main.async { [weak self] in
+                        guard let self = self else { return }
+                        
+                        self.currentDeviceID = firstDevice.id
+                        self.currentDevice = firstDevice
+                        
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+                            Logger.info("Posting audioDeviceChanged notification for: \(firstDevice.name)")
+                            NotificationCenter.default.post(name: .audioDeviceChanged, object: firstDevice)
+                            self?.deviceWasRemoved = false
+                        }
+                    }
+                } else {
+                    Logger.error("No devices available at all!")
+                    DispatchQueue.main.async { [weak self] in
+                        self?.currentDeviceID = 0
+                        self?.currentDevice = nil
+                    }
+                }
             }
         } else {
-            currentDeviceID = 0
-            currentDevice = nil
+            // System returned 0 for default device - wait and retry
+            Logger.warning("No default device available yet (ID=0), waiting for system to stabilize...")
+            
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
+                guard let self = self else { return }
+                
+                // Retry getting default device
+                let retryDefaultID = self.getDefaultOutputDevice()
+                
+                if retryDefaultID != 0 {
+                    Logger.info("Default device now available: \(retryDefaultID), retrying switch")
+                    self.refreshDeviceList()
+                    
+                    if let newDevice = self.availableDevices.first(where: { $0.id == retryDefaultID }) {
+                        self.currentDeviceID = retryDefaultID
+                        self.currentDevice = newDevice
+                        Logger.info("Successfully switched to: \(newDevice.name)")
+                        
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+                            NotificationCenter.default.post(name: .audioDeviceChanged, object: newDevice)
+                            self?.deviceWasRemoved = false
+                        }
+                    }
+                } else if let firstDevice = self.availableDevices.first {
+                    // Still no default, use first available
+                    Logger.warning("Still no default device, using first available: \(firstDevice.name)")
+                    self.currentDeviceID = firstDevice.id
+                    self.currentDevice = firstDevice
+                    
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+                        NotificationCenter.default.post(name: .audioDeviceChanged, object: firstDevice)
+                        self?.deviceWasRemoved = false
+                    }
+                } else {
+                    Logger.error("No devices available after retry")
+                }
+            }
         }
     }
     
-    /// Update device when needed (called manually)
+    /// Update device when needed (called manually) - only used at app startup
     func updateDevice() {
         currentDeviceID = getDefaultOutputDevice()
     }
     
-    /// Refresh device ID (useful before enabling hog mode)
+    /// Refresh device info (without changing user's selected device)
     func refreshDevice() {
-        currentDeviceID = getDefaultOutputDevice()
+        // Don't change currentDeviceID - preserve user's selection
+        // Just refresh the device list to get updated info
         refreshDeviceList()
     }
     
@@ -719,7 +839,23 @@ extension DACManager {
     func refreshDeviceList() {
         availableDevices = getAllOutputDevices()
         currentDevice = availableDevices.first { $0.id == currentDeviceID }
-        Logger.debug("Found \(availableDevices.count) output devices")
+        
+        // Only update to system default if we're in an invalid state (device is 0 or doesn't exist)
+        // Don't follow system default changes - preserve user's device selection
+        if currentDeviceID == 0 {
+            let defaultID = getDefaultOutputDevice()
+            if defaultID != 0 {
+                Logger.debug("No device selected, using system default: \(defaultID)")
+                currentDeviceID = defaultID
+                currentDevice = availableDevices.first { $0.id == defaultID }
+            }
+        } else if currentDevice == nil {
+            // Current device no longer exists (was removed)
+            // This will be handled by handleCurrentDeviceRemoved, don't auto-switch here
+            Logger.debug("Current device ID \(currentDeviceID) no longer available")
+        }
+        
+        Logger.debug("Found \(availableDevices.count) output devices, current: \(currentDevice?.name ?? "none")")
     }
     
     /// Switch to a different audio device
@@ -731,28 +867,31 @@ extension DACManager {
         
         Logger.info("Switching to device: \(device.name)")
         
+        // Disable hog mode on old device if active
+        // User must manually re-enable sample rate synchronization for the new device
         let wasHogging = isHogging
-        
-        // Release hog mode on current device if active
-        if isHogging {
-            disableHogMode()
-        }
-        
-        // Update current device
-        currentDeviceID = device.id
-        currentDevice = device
-        
-        // Re-enable hog mode on new device if it was active
         if wasHogging {
-            if enableHogMode() {
-                Logger.info("Hog mode re-enabled on new device: \(device.name)")
-            } else {
-                Logger.warning("Failed to enable hog mode on new device")
-            }
+            disableHogMode()
+            Logger.info("Sample rate synchronization disabled - re-enable manually if needed for new device")
         }
         
-        // Post notification for BASS to move streams to new device
-        NotificationCenter.default.post(name: .audioDeviceChanged, object: device)
+        // Update device state on main thread and notify observers
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            
+            // Update @Published properties (triggers UI updates)
+            self.currentDeviceID = device.id
+            self.currentDevice = device
+            
+            // Update settings if hog mode was disabled
+            if wasHogging {
+                AudioSettings.shared.synchronizeSampleRate = false
+            }
+            
+            // Notify BASS to move streams (on main thread)
+            Logger.debug("Posting audioDeviceChanged notification for: \(device.name)")
+            NotificationCenter.default.post(name: .audioDeviceChanged, object: device)
+        }
         
         return true
     }

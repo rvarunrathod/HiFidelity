@@ -127,7 +127,6 @@ enum NavigationTab: String, CaseIterable, Identifiable {
     
     var id: String { rawValue }
 }
-
 // MARK: - Preview
 
 #Preview {
@@ -135,4 +134,5 @@ enum NavigationTab: String, CaseIterable, Identifiable {
         .environmentObject(DatabaseManager.shared)
         .frame(width: 1200, height: 800)
 }
+
 

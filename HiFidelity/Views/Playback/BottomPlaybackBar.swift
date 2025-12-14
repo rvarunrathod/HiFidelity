@@ -38,7 +38,7 @@ struct BottomPlaybackBar: View {
                     )
                 }
             }
-            .padding(.horizontal, 20)
+            .padding(.horizontal, 12)
             .padding(.vertical, 12)
             .background(controlBarBackground)
         }

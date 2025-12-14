@@ -34,63 +34,54 @@ class BASSAudioEngine {
     
     deinit {
         cleanup()
-        // Release hog mode if active
-        if settings.synchronizeSampleRate {
-            dacManager.disableHogMode()
-        }
     }
     
     // MARK: - Engine Setup
     
     private func initializeBASSEngine() {
-        // Ensure we have the current default device
         dacManager.refreshDevice()
         
-        // Enable DAC/Hog mode with sample rate synchronization if requested
+        // Enable hog mode if sample rate synchronization is enabled
+        // DACManager will handle the hog mode and notify us to reacquire
         if settings.synchronizeSampleRate {
-            if dacManager.enableHogMode() {
-                Logger.info("Sample rate synchronization enabled - exclusive audio access active")
-                if let deviceName = dacManager.getDeviceName() {
-                    Logger.info("Hogged device: \(deviceName)")
-                }
-            } else {
-                Logger.warning("Failed to enable sample rate synchronization, continuing with normal mode")
-            }
+            _ = dacManager.enableHogMode()
         }
         
-        // Get current device sample rate (let device decide, don't force it)
-        let deviceSampleRate = dacManager.getCurrentDeviceSampleRate()
-        let sampleRate = DWORD(deviceSampleRate)
-        let flags: DWORD = 0
+        // Always use a specific device number (never -1) to prevent auto-switching
+        // when macOS changes the default device (e.g., when headphones are plugged in)
+        let deviceNumber = findMatchingBASSDevice()
+        let sampleRate = DWORD(dacManager.getCurrentDeviceSampleRate())
         
-        // Find the BASS device that matches our CoreAudio device
-        let deviceNumber = settings.synchronizeSampleRate ? findMatchingBASSDevice() : -1
-        
-        let result = BASS_Init(deviceNumber, sampleRate, flags, nil, nil)
+        let result = BASS_Init(deviceNumber, sampleRate, 0, nil, nil)
         
         if result == 0 {
-            let errorCode = BASS_ErrorGetCode()
-            Logger.error("BASS initialization failed with error: \(errorCode)")
+            Logger.error("BASS initialization failed: \(BASS_ErrorGetCode())")
             isInitialized = false
             
             // Disable hog mode if initialization failed
             if settings.synchronizeSampleRate {
                 dacManager.disableHogMode()
             }
-        } else {
-            Logger.info("BASS audio engine initialized successfully")
-            Logger.info("BASS Device: \(deviceNumber), Sample rate: \(Int(deviceSampleRate)) Hz, Buffer: \(settings.bufferLength) ms")
-            if settings.synchronizeSampleRate {
-                Logger.info("Sample rate synchronization: Enabled - will match each track's sample rate")
-            }
-            isInitialized = true
-            
-            // Apply user configuration
-            applyAudioSettings()
-            
-            // Load plugins for extended format support
-            loadPlugins()
+            return
         }
+        
+        isInitialized = true
+        
+        if let deviceName = dacManager.getDeviceName() {
+            Logger.info("BASS initialized: \(deviceName) (device=\(deviceNumber)), rate=\(Int(sampleRate))Hz, buffer=\(settings.bufferLength)ms")
+        } else {
+            Logger.info("BASS initialized: device=\(deviceNumber), rate=\(Int(sampleRate))Hz, buffer=\(settings.bufferLength)ms")
+        }
+        
+        if settings.synchronizeSampleRate {
+            Logger.info("Sample rate synchronization enabled - bit-perfect playback active")
+        }
+
+        // Apply user configuration 
+        applyAudioSettings()
+
+        // Load plugins for extended format support
+        loadPlugins()
     }
     
     /// Find the BASS device number that matches our CoreAudio device
@@ -149,8 +140,9 @@ class BASSAudioEngine {
         // BASS_CONFIG_BUFFER - Playback buffer length in milliseconds
         BASS_SetConfig(DWORD(BASS_CONFIG_BUFFER), DWORD(settings.bufferLength))
         
-        // BASS_CONFIG_FLOATDSP - Always use floating-point for best quality
-        BASS_SetConfig(DWORD(BASS_CONFIG_FLOATDSP), 1)
+        // BASS_CONFIG_FLOATDSP - Let bit depth depend on source file
+        // Not forcing floating-point allows bit-perfect playback at native bit depth
+        BASS_SetConfig(DWORD(BASS_CONFIG_FLOATDSP), 0)
         
         // BASS_CONFIG_SRC - Sample rate conversion quality
         // Always use high quality as fallback, even in sync mode
@@ -159,9 +151,9 @@ class BASSAudioEngine {
         BASS_SetConfig(DWORD(BASS_CONFIG_SRC), 4) // 64-point sinc interpolation
         
         if settings.synchronizeSampleRate {
-            Logger.debug("Applied audio settings: buffer=\(settings.bufferLength)ms, sync mode (device rate will match tracks)")
+            Logger.debug("Applied audio settings: buffer=\(settings.bufferLength)ms, native bit depth, sync mode")
         } else {
-            Logger.debug("Applied audio settings: buffer=\(settings.bufferLength)ms, SRC quality=4 (64-point sinc)")
+            Logger.debug("Applied audio settings: buffer=\(settings.bufferLength)ms, native bit depth, SRC quality=4")
         }
     }
     
@@ -178,7 +170,7 @@ class BASSAudioEngine {
     
     /// Observe settings changes and reapply
     private func observeSettingsChanges() {
-        // Global settings changes
+        // Audio settings changes (buffer, volume, etc.)
         NotificationCenter.default.addObserver(
             forName: NSNotification.Name("AudioSettingsChanged"),
             object: nil,
@@ -186,7 +178,9 @@ class BASSAudioEngine {
         ) { [weak self] _ in
             guard let self = self else { return }
             
-            // Handle sample rate synchronization changes
+            Logger.debug("Audio settings changed - applying updates")
+            
+            // Handle sample rate synchronization toggle
             if self.settings.synchronizeSampleRate && !self.dacManager.isInHogMode() {
                 _ = self.dacManager.enableHogMode()
             } else if !self.settings.synchronizeSampleRate && self.dacManager.isInHogMode() {
@@ -195,6 +189,15 @@ class BASSAudioEngine {
             
             self.applyAudioSettings()
             self.applyChannelSettings()
+        }
+        
+        // Device needs reacquisition (after hog mode enabled)
+        NotificationCenter.default.addObserver(
+            forName: .audioDeviceNeedsReacquisition,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.reacquireDevice()
         }
         
         // Device change notifications
@@ -206,8 +209,45 @@ class BASSAudioEngine {
             guard let self = self else { return }
             
             if let device = notification.object as? AudioOutputDevice {
-                Logger.info("Audio device changed notification received: \(device.name)")
+                Logger.info("Audio device changed: \(device.name)")
                 self.handleDeviceChange(to: device)
+            }
+        }
+    }
+    
+    /// Reacquire BASS device after hog mode is enabled
+    private func reacquireDevice() {
+        Logger.info("Reacquiring BASS device after hog mode enabled")
+        
+        let bassDeviceNumber = findMatchingBASSDevice()
+        
+        // Ensure the device is initialized
+        var deviceInfo = BASS_DEVICEINFO()
+        if BASS_GetDeviceInfo(DWORD(bassDeviceNumber), &deviceInfo) != 0 {
+            if deviceInfo.flags & DWORD(BASS_DEVICE_INIT) == 0 {
+                // Initialize device
+                let sampleRate = DWORD(dacManager.getCurrentDeviceSampleRate())
+                let result = BASS_Init(bassDeviceNumber, sampleRate, 0, nil, nil)
+                if result == 0 {
+                    Logger.error("Failed to initialize BASS device: \(BASS_ErrorGetCode())")
+                    return
+                }
+                applyAudioSettings()
+            }
+        }
+        
+        // Set as current device
+        if BASS_SetDevice(DWORD(bassDeviceNumber)) == 0 {
+            Logger.error("Failed to bass set device: \(BASS_ErrorGetCode())")
+        }
+        
+        // Move existing streams
+        if currentStream != 0 {
+            let result = BASS_ChannelSetDevice(currentStream, DWORD(bassDeviceNumber))
+            if result == 0 {
+                Logger.warning("Failed to move stream: \(BASS_ErrorGetCode())")
+            } else {
+                Logger.info("✓ Stream moved to reacquired device")
             }
         }
     }
@@ -216,77 +256,85 @@ class BASSAudioEngine {
     private func handleDeviceChange(to device: AudioOutputDevice) {
         Logger.info("Handling device change to: \(device.name)")
         
-        // Find the BASS device number that matches the new CoreAudio device
         let bassDeviceNumber = findMatchingBASSDeviceForID(device.id)
-        
-        if bassDeviceNumber == -1 {
+        guard bassDeviceNumber != -1 else {
             Logger.error("Could not find matching BASS device for: \(device.name)")
             return
         }
         
-        // Initialize the new device if not already initialized
-        let deviceSampleRate = device.sampleRate
-        let sampleRate = DWORD(deviceSampleRate)
-        let flags: DWORD = 0
+        // Check if stream was playing before the device change
+        let wasPlaying = currentStream != 0 && BASS_ChannelIsActive(currentStream) == DWORD(BASS_ACTIVE_PLAYING)
+        if wasPlaying {
+            Logger.debug("Stream was playing before device change")
+        }
         
-        // Check if device is already initialized, if not initialize it
+        // Initialize device if needed
         var deviceInfo = BASS_DEVICEINFO()
         if BASS_GetDeviceInfo(DWORD(bassDeviceNumber), &deviceInfo) != 0 {
             if deviceInfo.flags & DWORD(BASS_DEVICE_INIT) == 0 {
-                // Device not initialized, initialize it
-                Logger.info("Initializing new BASS device: \(bassDeviceNumber)")
-                let result = BASS_Init(bassDeviceNumber, sampleRate, flags, nil, nil)
+                Logger.info("Initializing BASS device \(bassDeviceNumber)")
+                let result = BASS_Init(bassDeviceNumber, DWORD(device.sampleRate), 0, nil, nil)
                 if result == 0 {
-                    let errorCode = BASS_ErrorGetCode()
-                    Logger.error("Failed to initialize new device: \(errorCode)")
+                    Logger.error("Failed to initialize new device: \(BASS_ErrorGetCode())")
                     return
                 }
-                // Apply settings to new device
                 applyAudioSettings()
             }
         }
         
-        // Update BASS to use the new device as current
-        BASS_SetDevice(DWORD(bassDeviceNumber))
+        // Switch to new device
+        if BASS_SetDevice(DWORD(bassDeviceNumber)) == 0 {
+            Logger.error("Failed to bass set device: \(BASS_ErrorGetCode())")
+        }
+        Logger.debug("BASS device set to \(bassDeviceNumber)")
         
-        // Try to move streams, but if it fails, we'll need to reload
+        // Try to move existing streams
         var streamMovedSuccessfully = false
         
         if currentStream != 0 {
-            let result = BASS_ChannelSetDevice(currentStream, DWORD(bassDeviceNumber))
-            if result != 0 {
-                Logger.info("✓ Moved current stream to new device")
-                streamMovedSuccessfully = true
-            } else {
-                let errorCode = BASS_ErrorGetCode()
-                Logger.warning("Failed to move current stream: \(errorCode) - will need to reload")
+            streamMovedSuccessfully = BASS_ChannelSetDevice(currentStream, DWORD(bassDeviceNumber)) != 0
+            Logger.info(streamMovedSuccessfully ? "✓ Stream moved to new device" : "⚠️ Stream move failed - reload needed")
+            
+            // If stream was moved successfully and was playing, ensure it continues playing on new device
+            if streamMovedSuccessfully && wasPlaying {
+                // Ensure the output device is started
+                if BASS_IsStarted() == 0 {
+                    Logger.debug("Starting output on new device")
+                    if BASS_Start() == 0 {
+                        Logger.warning("Failed to start output device: \(BASS_ErrorGetCode())")
+                    }
+                }
+                
+                // Resume playback on the new device
+                let playResult = BASS_ChannelPlay(currentStream, 0)
+                if playResult != 0 {
+                    Logger.info("✓ Resumed playback on new device")
+                } else {
+                    Logger.error("Failed to resume playback on new device: \(BASS_ErrorGetCode())")
+                    streamMovedSuccessfully = false
+                }
             }
+        } else {
+            Logger.debug("No current stream - reload will be needed if track exists")
         }
         
-        // Move preloaded stream to new device
         if nextStream != 0 {
-            let result = BASS_ChannelSetDevice(nextStream, DWORD(bassDeviceNumber))
-            if result != 0 {
-                Logger.debug("✓ Moved preloaded stream to new device")
-            } else {
-                let errorCode = BASS_ErrorGetCode()
-                Logger.warning("Failed to move preloaded stream: \(errorCode)")
-                // Clear the preloaded stream if it couldn't be moved
+            if BASS_ChannelSetDevice(nextStream, DWORD(bassDeviceNumber)) == 0 {
                 BASS_StreamFree(nextStream)
                 nextStream = 0
             }
         }
         
-        Logger.info("Device change complete: now using BASS device \(bassDeviceNumber)")
+        // Post completion notification
+        // needsReload is true if stream doesn't exist OR if it exists but couldn't be moved
+        let needsReload = !streamMovedSuccessfully
+        Logger.info("Posting device change complete: needsReload=\(needsReload)")
         
-        // Notify that device change is complete and whether stream needs reloading
-        DispatchQueue.main.async {
-            NotificationCenter.default.post(
-                name: .audioDeviceChangeComplete,
-                object: nil,
-                userInfo: ["needsReload": !streamMovedSuccessfully]
-            )
-        }
+        NotificationCenter.default.post(
+            name: .audioDeviceChangeComplete,
+            object: nil,
+            userInfo: ["needsReload": needsReload]
+        )
     }
     
     /// Find BASS device number for a specific CoreAudio device ID
@@ -385,7 +433,7 @@ class BASSAudioEngine {
     
     // MARK: - Playback Control
     
-    func load(url: URL, trackSampleRate: Int? = nil) -> Bool {
+    func load(url: URL) -> Bool {
         guard isInitialized else {
             Logger.error("BASS engine not initialized")
             return false
@@ -408,7 +456,7 @@ class BASSAudioEngine {
             path,
             0,
             0,
-            DWORD(BASS_SAMPLE_FLOAT | BASS_STREAM_PRESCAN) // 32-bit floating-point for best quality
+            DWORD(BASS_STREAM_PRESCAN) // Use native bit depth from source file
         )
         
         if currentStream == 0 {
@@ -422,18 +470,18 @@ class BASSAudioEngine {
             return false
         }
         
-        // Get stream info to determine actual sample rate
-        if let streamInfo = getStreamInfo() {
-            Logger.info("Loaded track: \(url.lastPathComponent)")
-            Logger.info("  Stream: \(streamInfo.frequency) Hz, \(streamInfo.channels) channels")
+        // CRITICAL: Switch device sample rate to match track for bit-perfect playback
+        // Why this is necessary:
+        // - Audio devices operate at a specific sample rate (e.g., 44.1kHz, 48kHz, 96kHz)
+        // - If device is at 44.1kHz and track is 96kHz, BASS will resample (quality loss)
+        // - By switching device to track's rate, BASS outputs directly without resampling
+        // - This is the ONLY way to achieve true bit-perfect playback
+        if settings.synchronizeSampleRate {
+            // Get stream info to determine actual sample rate and bit depth
+            if let streamInfo = getStreamInfo() {
+                Logger.info("Loaded track: \(url.lastPathComponent)")
+                Logger.info("  Stream: \(streamInfo.frequency) Hz, \(streamInfo.channels) channels, \(streamInfo.bitDepth)-bit")
             
-            // CRITICAL: Switch device sample rate to match track for bit-perfect playback
-            // Why this is necessary:
-            // - Audio devices operate at a specific sample rate (e.g., 44.1kHz, 48kHz, 96kHz)
-            // - If device is at 44.1kHz and track is 96kHz, BASS will resample (quality loss)
-            // - By switching device to track's rate, BASS outputs directly without resampling
-            // - This is the ONLY way to achieve true bit-perfect playback
-            if settings.synchronizeSampleRate {
                 let targetRate = Float64(streamInfo.frequency)
                 if dacManager.setDeviceSampleRate(targetRate) {
                     Logger.info("  Bit-perfect: Device switched to \(streamInfo.frequency) Hz (no resampling)")
@@ -456,6 +504,18 @@ class BASSAudioEngine {
         guard currentStream != 0 else {
             Logger.error("No stream loaded")
             return false
+        }
+        
+        // Ensure the audio output device is started
+        // The output may be paused automatically if the output device becomes unavailable (e.g., disconnected)
+        // or after device switches. BASS_Start() resumes the output before playing the channel.
+        if BASS_IsStarted() == 0 {
+            Logger.debug("Output device is paused/stopped, starting it")
+            if BASS_Start() == 0 {
+                let errorCode = BASS_ErrorGetCode()
+                Logger.warning("Failed to start output device: \(errorCode)")
+                // Continue anyway - try to play the channel
+            }
         }
         
         let result = BASS_ChannelPlay(currentStream, 0) // 0 = don't restart from beginning
@@ -499,7 +559,7 @@ class BASSAudioEngine {
     // MARK: - Gapless Playback
     
     /// Pre-load the next track for gapless playback
-    func preloadNext(url: URL, trackSampleRate: Int? = nil) -> Bool {
+    func preloadNext(url: URL) -> Bool {
         guard isInitialized else {
             Logger.error("BASS engine not initialized")
             return false
@@ -525,7 +585,7 @@ class BASSAudioEngine {
             path,
             0,
             0,
-            DWORD(BASS_SAMPLE_FLOAT | BASS_STREAM_PRESCAN)
+            DWORD(BASS_STREAM_PRESCAN) // Use native bit depth from source file
         )
         
         if nextStream == 0 {
@@ -540,7 +600,7 @@ class BASSAudioEngine {
     }
     
     /// Switch to the pre-loaded next track (gapless transition)
-    func switchToPreloadedTrack(volume: Float, trackSampleRate: Int? = nil) -> Bool {
+    func switchToPreloadedTrack(volume: Float) -> Bool {
         guard nextStream != 0 else {
             Logger.error("No pre-loaded track available")
             return false
@@ -678,10 +738,18 @@ class BASSAudioEngine {
         // Get bit depth from flags
         let bitDepth = getBitDepth(from: info.flags)
         
+        // Calculate bitrate from file size and duration
+        let fileSize = BASS_StreamGetFilePosition(currentStream, DWORD(BASS_FILEPOS_END))
+        let duration = getDuration()
+        
+        // Bitrate in bps = (fileSize in bytes * 8 bits) / duration in seconds
+        // Convert to kbps
+        let bitrate = duration > 0 ? Int((Double(fileSize) * 8.0) / duration) : 0
+        
         return BASSStreamInfo(
             frequency: Int(info.freq),
             channels: Int(info.chans),
-            bitrate: Int(BASS_StreamGetFilePosition(currentStream, DWORD(BASS_FILEPOS_END))),
+            bitrate: bitrate,
             bitDepth: bitDepth
         )
     }
@@ -702,21 +770,22 @@ class BASSAudioEngine {
     func cleanup() {
         stop()
         
-        // Release hog mode if active
-        if settings.synchronizeSampleRate && dacManager.isInHogMode() {
-            dacManager.disableHogMode()
-        }
-        
         if isInitialized {
-            // Unload all plugins
+            // Unload plugins
             for plugin in loadedPlugins {
                 BASS_PluginFree(plugin)
             }
             loadedPlugins.removeAll()
-            Logger.debug("Unloaded \(loadedPlugins.count) plugin(s)")
             
+            // Free BASS
             BASS_Free()
             isInitialized = false
+            
+            // Release hog mode
+            if dacManager.isInHogMode() {
+                dacManager.disableHogMode()
+            }
+            
             Logger.info("BASS audio engine cleaned up")
         }
     }

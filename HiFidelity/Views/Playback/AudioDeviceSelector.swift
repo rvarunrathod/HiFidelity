@@ -12,7 +12,6 @@ struct AudioDeviceSelector: View {
     @ObservedObject var dacManager = DACManager.shared
     @ObservedObject var theme = AppTheme.shared
     @State private var showDeviceMenu = false
-    @State private var showDeviceRemovedAlert = false
     
     var body: some View {
         Button(action: {
@@ -30,22 +29,6 @@ struct AudioDeviceSelector: View {
             deviceMenuContent
         }
         .help("Select Audio Output Device")
-        .onChange(of: dacManager.deviceWasRemoved) { oldValue, newValue in
-            if newValue {
-                showDeviceRemovedAlert = true
-            }
-        }
-        .alert("Audio Device Disconnected", isPresented: $showDeviceRemovedAlert) {
-            Button("OK") {
-                showDeviceRemovedAlert = false
-            }
-        } message: {
-            if let currentDevice = dacManager.currentDevice {
-                Text("Switched to \(currentDevice.name)")
-            } else {
-                Text("Your audio device was disconnected. Playback has been stopped.")
-            }
-        }
     }
     
     // MARK: - Device Menu Content
@@ -169,12 +152,7 @@ struct AudioDeviceSelector: View {
             Logger.info("Switched to device: \(device.name)")
             showDeviceMenu = false
             
-            // Show brief notification
-            NotificationCenter.default.post(
-                name: .showNotification,
-                object: nil,
-                userInfo: ["message": "Switched to \(device.name)"]
-            )
+            
         }
     }
     
@@ -194,11 +172,7 @@ struct AudioDeviceSelector: View {
     }
 }
 
-// MARK: - Notification Extension
 
-extension Notification.Name {
-    static let showNotification = Notification.Name("ShowNotification")
-}
 
 // MARK: - Preview
 

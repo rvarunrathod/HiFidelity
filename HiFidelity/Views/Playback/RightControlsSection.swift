@@ -14,7 +14,7 @@ struct RightControlsSection: View {
     @ObservedObject var theme = AppTheme.shared
     
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 8) {
             // Queue button
             PanelToggleButton(
                 icon: "list.bullet",
@@ -38,7 +38,7 @@ struct RightControlsSection: View {
             Divider()
                 .frame(height: 24)
 
-            HStack(spacing: 4) {
+            HStack(spacing: 2) {
                 // Sample rate sync button
                 SampleRateSyncButton()
 

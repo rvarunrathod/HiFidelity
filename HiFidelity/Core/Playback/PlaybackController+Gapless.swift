@@ -65,7 +65,7 @@ extension PlaybackController {
         Logger.info("Pre-loading next track for gapless: \(track.title)")
         
         // Pre-load using BASS engine's dual-stream capability
-        let success = audioEngine.preloadNext(url: track.url, trackSampleRate: track.sampleRate)
+        let success = audioEngine.preloadNext(url: track.url)
         
         if success {
             isNextTrackPreloaded = true
@@ -111,18 +111,13 @@ extension PlaybackController {
             playbackHistory.append(previous)
         }
         
-        // Update current track
-        currentTrack = track
-        currentTime = 0
-        currentStreamInfo = nil // Will be updated when playback starts
-        
-        // Switch to pre-loaded stream (gapless)
-        let success = audioEngine.switchToPreloadedTrack(volume: Float(isMuted ? 0 : volume), trackSampleRate: track.sampleRate)
+        // Switch to pre-loaded stream (gapless) BEFORE updating UI
+        let success = audioEngine.switchToPreloadedTrack(volume: Float(isMuted ? 0 : volume))
         
         if !success {
             Logger.warning("Gapless switch failed, falling back to normal load")
             // Fallback: load and play normally
-            guard audioEngine.load(url: track.url, trackSampleRate: track.sampleRate) else {
+            guard audioEngine.load(url: track.url) else {
                 Logger.error("Failed to load track: \(track.title)")
                 return
             }
@@ -133,8 +128,14 @@ extension PlaybackController {
         duration = audioEngine.getDuration()
         isPlaying = true
         
-        // Update stream info for the new track
-        currentStreamInfo = audioEngine.getStreamInfo()
+        // Get stream info for the new track BEFORE updating currentTrack
+        // This ensures UI updates happen with correct data
+        let newStreamInfo = audioEngine.getStreamInfo()
+        
+        // Now update UI state atomically
+        currentTrack = track
+        currentTime = 0
+        currentStreamInfo = newStreamInfo
         
         startPositionTimer()
         

@@ -19,6 +19,8 @@ struct AlbumsTabView: View {
     @State private var filteredAlbums: [Album] = []
     @State private var isLoading = false
     @State private var hasLoadedOnce = false
+    @AppStorage("albumsSortOptionId") private var sortOptionId: String = "name"
+    @AppStorage("albumsSortAscending") private var sortAscending: Bool = true
     @State private var selectedSort = SortOption(id: "name", title: "Name", type: .alphabetical, ascending: true)
     @State private var selectedFilter: FilterOption? = nil
     
@@ -31,7 +33,8 @@ struct AlbumsTabView: View {
     
     private let sortOptions = [
         SortOption(id: "name", title: "Name", type: .alphabetical, ascending: true),
-        SortOption(id: "artist", title: "Artist", type: .alphabetical, ascending: true),
+        SortOption(id: "artist", title: "Album Artist", type: .alphabetical, ascending: true),
+        SortOption(id: "year", title: "Year", type: .year, ascending: false),
         SortOption(id: "recent", title: "Recently Added", type: .dateAdded, ascending: false),
         SortOption(id: "tracks", title: "Track Count", type: .trackCount, ascending: false)
     ]
@@ -89,6 +92,16 @@ struct AlbumsTabView: View {
             }
         }
         .onAppear {
+            // Restore saved sort option
+            if let savedOption = sortOptions.first(where: { $0.id == sortOptionId }) {
+                selectedSort = SortOption(
+                    id: savedOption.id,
+                    title: savedOption.title,
+                    type: savedOption.type,
+                    ascending: sortAscending
+                )
+            }
+            
             if isVisible && !hasLoadedOnce {
                 Task {
                     await loadAlbums()
@@ -101,7 +114,9 @@ struct AlbumsTabView: View {
                 await loadAlbums()
             }
         }
-        .onChange(of: selectedSort) { _, _ in
+        .onChange(of: selectedSort) { _, newSort in
+            sortOptionId = newSort.id
+            sortAscending = newSort.ascending
             applyFiltersAndSort()
         }
         .onChange(of: selectedFilter) { _, _ in
@@ -219,13 +234,19 @@ struct AlbumsTabView: View {
         switch selectedSort.type {
         case .alphabetical:
             if selectedSort.id == "artist" {
-                result.sort { 
+                result.sort {
                     let artist1 = $0.albumArtist ?? ""
                     let artist2 = $1.albumArtist ?? ""
                     return artist1.localizedCompare(artist2) == .orderedAscending
                 }
             } else {
                 result.sort { $0.title.localizedCompare($1.title) == .orderedAscending }
+            }
+        case .year:
+            result.sort { album1, album2 in
+                let year1 = Int(album1.year ?? "0") ?? 0
+                let year2 = Int(album2.year ?? "0") ?? 0
+                return year1 > year2
             }
         case .dateAdded:
             result.sort { $0.dateAdded > $1.dateAdded }

@@ -19,6 +19,8 @@ struct GenresTabView: View {
     @State private var filteredGenres: [Genre] = []
     @State private var isLoading = false
     @State private var hasLoadedOnce = false
+    @AppStorage("genresSortOptionId") private var sortOptionId: String = "name"
+    @AppStorage("genresSortAscending") private var sortAscending: Bool = true
     @State private var selectedSort = SortOption(id: "name", title: "Name", type: .alphabetical, ascending: true)
     @State private var selectedFilter: FilterOption? = nil
     
@@ -79,6 +81,16 @@ struct GenresTabView: View {
             }
         }
         .onAppear {
+            // Restore saved sort option
+            if let savedOption = sortOptions.first(where: { $0.id == sortOptionId }) {
+                selectedSort = SortOption(
+                    id: savedOption.id,
+                    title: savedOption.title,
+                    type: savedOption.type,
+                    ascending: sortAscending
+                )
+            }
+            
             if isVisible && !hasLoadedOnce {
                 Task {
                     await loadGenres()
@@ -91,7 +103,9 @@ struct GenresTabView: View {
                 await loadGenres()
             }
         }
-        .onChange(of: selectedSort) { _, _ in
+        .onChange(of: selectedSort) { _, newSort in
+            sortOptionId = newSort.id
+            sortAscending = newSort.ascending
             applyFiltersAndSort()
         }
         .onChange(of: selectedFilter) { _, _ in

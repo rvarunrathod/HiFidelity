@@ -18,8 +18,10 @@ import GRDB
 
 class DatabaseManager: ObservableObject {
     // MARK: - Properties
-//    @Published var isScanning: Bool = false
-//    @Published var scanStatusMessage: String = ""
+    @Published var isImporting: Bool = false
+    @Published var importProgress: Double = 0.0
+    @Published var importStatusMessage: String = ""
+    @Published var currentImportingFolder: String = ""
 
     let dbQueue: DatabaseQueue
     private let dbPath: String

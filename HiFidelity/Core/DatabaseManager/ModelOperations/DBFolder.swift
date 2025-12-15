@@ -98,6 +98,7 @@ extension DatabaseManager {
                 : "Removed folder '\(folder.name)' with \(trackCount) tracks"
             NotificationManager.shared.addMessage(.info, message)
             NotificationCenter.default.post(name: .libraryDataDidChange, object: nil)
+            NotificationCenter.default.post(name: .foldersDataDidChange, object: nil)
             
             // Stop monitoring this folder
             FolderWatcherService.shared.stopWatching(folder: folder)
@@ -107,6 +108,14 @@ extension DatabaseManager {
     // MARK: - Add Folders
     
     func addFolder() {
+        // Prevent adding folders while import is in progress
+        if isImporting {
+            Task { @MainActor in
+                NotificationManager.shared.addMessage(.warning, "Please wait for the current import to finish")
+            }
+            return
+        }
+        
         let openPanel = NSOpenPanel()
         openPanel.canChooseFiles = false
         openPanel.canChooseDirectories = true
@@ -169,6 +178,13 @@ extension DatabaseManager {
     }
 
     func addFoldersAsync(_ urls: [URL], bookmarkDataMap: [URL: Data]) async throws -> [Folder] {
+        // Set importing state
+        await MainActor.run {
+            isImporting = true
+            importProgress = 0.0
+            importStatusMessage = "Adding folders..."
+        }
+        
         let addedFolders = try await dbQueue.write { db -> [Folder] in
             var folders: [Folder] = []
             
@@ -223,9 +239,27 @@ extension DatabaseManager {
 
         // Scan the folders for tracks in background
         if !addedFolders.isEmpty {
-            try await addFoldersForTracks(addedFolders)
+            do {
+                try await addFoldersForTracks(addedFolders)
+            } catch {
+                // Ensure importing state is cleared on error
+                await MainActor.run {
+                    isImporting = false
+                    importProgress = 0.0
+                    importStatusMessage = ""
+                    currentImportingFolder = ""
+                }
+                throw error
+            }
         }
 
+        // Clear importing state
+        await MainActor.run {
+            isImporting = false
+            importProgress = 0.0
+            importStatusMessage = ""
+            currentImportingFolder = ""
+        }
 
         return addedFolders
     }
@@ -269,6 +303,12 @@ extension DatabaseManager {
 
     func scanSingleFolder(_ folder: Folder) async throws {
         let fileManager = FileManager.default
+
+        // Update status
+        await MainActor.run {
+            currentImportingFolder = folder.name
+            importStatusMessage = "Scanning '\(folder.name)'..."
+        }
 
         guard let enumerator = fileManager.enumerator(
             at: folder.url,
@@ -362,7 +402,7 @@ extension DatabaseManager {
         }
 
         // Process music files in batches
-        let batchSize = totalFiles > 1000 ? 100 : 50
+        let batchSize = totalFiles > 1000 ? 200 : 100
         let fileBatches = musicFiles.chunked(into: batchSize)
         var batchCounter = 0
 
@@ -376,8 +416,11 @@ extension DatabaseManager {
                 let currentProcessed = await scanState.getProcessedCount()
                 batchCounter += 1
                 
-                // Update progress
+                // Calculate and update progress
+                let progress = Double(currentProcessed) / Double(totalFiles)
                 await MainActor.run {
+                    importProgress = progress
+                    importStatusMessage = "Processing: \(currentProcessed)/\(totalFiles) files in '\(folder.name)'"
                     NotificationManager.shared.addMessage(.info, "Processing: \(currentProcessed)/\(totalFiles) files in \(folder.name)")
                 }
                 
@@ -475,6 +518,10 @@ extension DatabaseManager {
         Task {
             do {
                 await MainActor.run {
+                    isImporting = true
+                    importProgress = 0.0
+                    importStatusMessage = "Refreshing '\(folder.name)'..."
+                    currentImportingFolder = folder.name
                     NotificationManager.shared.addMessage(.info, "Refreshing \(folder.name)...")
                 }
 
@@ -489,9 +536,20 @@ extension DatabaseManager {
                 let trackCountAfter = getTracksForFolder(folder.id ?? -1).count
                 Logger.info("Completed refresh for folder \(folder.name) with \(trackCountAfter) tracks (was \(trackCountBefore))")
 
+                await MainActor.run {
+                    isImporting = false
+                    importProgress = 0.0
+                    importStatusMessage = ""
+                    currentImportingFolder = ""
+                }
+                
                 completion(.success(()))
             } catch {
                 await MainActor.run {
+                    isImporting = false
+                    importProgress = 0.0
+                    importStatusMessage = ""
+                    currentImportingFolder = ""
                     completion(.failure(error))
                     Logger.error("Failed to refresh folder \(folder.name): \(error)")
                     NotificationManager.shared.addMessage(.error, "Failed to refresh folder \(folder.name)")

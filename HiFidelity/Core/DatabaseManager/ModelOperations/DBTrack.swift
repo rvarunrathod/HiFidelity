@@ -190,22 +190,30 @@ extension DatabaseManager {
             }
         }
         
-        // Insert the track - didInsert() automatically sets trackId
-        try mutableTrack.insert(db)
-        
-        // Verify insertion succeeded
-        guard let trackId = mutableTrack.trackId else {
-            throw DatabaseError.invalidTrackId
+        // Check if track with this path already exists (handle race conditions)
+        if let existingTrack = try Track.filter(Track.Columns.path == mutableTrack.url.path).fetchOne(db) {
+            // Track already exists, update it instead
+            mutableTrack.trackId = existingTrack.trackId
+            try mutableTrack.update(db)
+            Logger.info("Updated existing track: \(mutableTrack.title) (ID: \(mutableTrack.trackId ?? -1))")
+        } else {
+            // Insert the track - didInsert() automatically sets trackId
+            try mutableTrack.insert(db)
+            
+            // Verify insertion succeeded
+            guard let trackId = mutableTrack.trackId else {
+                throw DatabaseError.invalidTrackId
+            }
+            
+            // Note: Statistics are automatically updated by database triggers
+            
+            Logger.info("Added new track: \(mutableTrack.title) (ID: \(trackId))")
+            
+            // Log interesting metadata in debug builds
+            #if DEBUG
+            logTrackMetadata(mutableTrack)
+            #endif
         }
-        
-        // Note: Statistics are automatically updated by database triggers
-        
-        Logger.info("Added new track: \(mutableTrack.title) (ID: \(trackId))")
-        
-        // Log interesting metadata in debug builds
-        #if DEBUG
-        logTrackMetadata(mutableTrack)
-        #endif
     }
     
     /// Process an updated track with normalized data

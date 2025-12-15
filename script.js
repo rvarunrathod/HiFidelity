@@ -31,20 +31,34 @@ document.addEventListener('DOMContentLoaded', () => {
 let lastScrollTop = 0;
 const navbar = document.querySelector('.navbar');
 
-window.addEventListener('scroll', () => {
-    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+// Function to get the appropriate navbar background based on color scheme
+function getNavbarBackground(isScrolled) {
+    const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
     
-    // Add shadow/background when scrolled
-    if (scrollTop > 20) {
-        navbar.style.background = 'rgba(0, 0, 0, 0.8)';
-        navbar.style.boxShadow = '0 1px 0 rgba(255, 255, 255, 0.1)';
+    if (isDark) {
+        return isScrolled ? 'rgba(28, 28, 30, 0.9)' : 'rgba(28, 28, 30, 0.7)';
     } else {
-        navbar.style.background = 'rgba(0, 0, 0, 0.6)';
-        navbar.style.boxShadow = 'none';
+        return isScrolled ? 'rgba(255, 255, 255, 0.9)' : 'rgba(255, 255, 255, 0.7)';
     }
+}
+
+function updateNavbarStyle() {
+    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+    const isScrolled = scrollTop > 20;
+    
+    navbar.style.background = getNavbarBackground(isScrolled);
+    navbar.style.boxShadow = isScrolled ? '0 1px 0 rgba(0, 0, 0, 0.1)' : 'none';
     
     lastScrollTop = scrollTop;
-});
+}
+
+window.addEventListener('scroll', updateNavbarStyle);
+
+// Listen for color scheme changes
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', updateNavbarStyle);
+
+// Initialize navbar style
+updateNavbarStyle();
 
 // Copy code on click
 document.querySelectorAll('.code-block').forEach(block => {

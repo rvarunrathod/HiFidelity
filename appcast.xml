@@ -5,6 +5,35 @@
         <description>Updates for HiFidelity - High-Fidelity Music Player</description>
         <language>en</language>
         <item>
+            <title>Version 1.0.6</title>
+            <pubDate>Mon, 15 Dec 2025 14:03:49 +0530</pubDate>
+            <sparkle:version>106</sparkle:version>
+            <sparkle:shortVersionString>1.0.6</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <enclosure
+                url="https://github.com/rvarunrathod/HiFidelity/releases/download/v1.0.6/HiFidelity-1.0.6-Universal.dmg"
+                sparkle:edSignature="UOptuJ3RKEGHvTribvpkoXv382uBGjbKPlXOUaPHTs/yQ8HuZ7wJQLmlKaHwLCG8OKorEGmod9hdkOBtLCotAg=="
+                length="13944010"
+                type="application/octet-stream"
+            />
+            <description><![CDATA[
+                <h2>Improvement</h2>
+<ul>
+    <li>Update app icon and logo assets, refactor AppHeader view to use new logo image</li>
+    <li>Implement bit-perfect playback with sample rate synchronization (hog mode)</li>
+    <li>Audio device change option within UI</li>
+    <li>Implement M3U playlist import and export functionality, and add folder as playlist import feature</li>
+    <li>Implement persistent sorting for library views, including albums, artists, genres, and tracks, with saved sort options and fields</li>
+    <li>Implement music import progress tracking and UI, with import status display and folder scanning improvements</li>
+</ul>
+<h2>Fixes</h2>
+<ul>
+    <li>Enhance full-text search with weighted ranking, BM25 scoring, and improved tokenization ( rebuild FTS going Settings -> Advance)</li>
+</ul>
+<p><a href="https://github.com/rvarunrathod/HiFidelity/compare/v1.0.5...v1.0.6">Full Changelog</a></p>
+            ]]></description>
+        </item>
+        <item>
             <title>Version 1.0.5</title>
             <pubDate>Thu, 11 Dec 2025 15:58:05 +0530</pubDate>
             <sparkle:version>105</sparkle:version>

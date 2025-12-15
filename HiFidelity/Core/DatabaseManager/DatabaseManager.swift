@@ -130,6 +130,79 @@ class DatabaseManager: ObservableObject {
         }
         Logger.info("Database vacuum completed")
     }
+    
+    /// Rebuild FTS5 virtual tables to refresh search indexes
+    /// This is useful after data corruption or to apply new FTS configurations
+    func rebuildFTS() async throws {
+        Logger.info("Rebuilding FTS5 virtual tables...")
+        
+        try await dbQueue.write { db in
+            // Rebuild each FTS table using FTS5's rebuild command
+            // This repopulates the index from the content tables
+            try db.execute(sql: "INSERT INTO tracks_fts(tracks_fts) VALUES('rebuild')")
+            try db.execute(sql: "INSERT INTO albums_fts(albums_fts) VALUES('rebuild')")
+            try db.execute(sql: "INSERT INTO artists_fts(artists_fts) VALUES('rebuild')")
+            try db.execute(sql: "INSERT INTO genres_fts(genres_fts) VALUES('rebuild')")
+            try db.execute(sql: "INSERT INTO playlists_fts(playlists_fts) VALUES('rebuild')")
+            
+            // Optimize FTS tables after rebuild for better performance
+            try db.execute(sql: "INSERT INTO tracks_fts(tracks_fts) VALUES('optimize')")
+            try db.execute(sql: "INSERT INTO albums_fts(albums_fts) VALUES('optimize')")
+            try db.execute(sql: "INSERT INTO artists_fts(artists_fts) VALUES('optimize')")
+            try db.execute(sql: "INSERT INTO genres_fts(genres_fts) VALUES('optimize')")
+            try db.execute(sql: "INSERT INTO playlists_fts(playlists_fts) VALUES('optimize')")
+        }
+        
+        Logger.info("FTS5 rebuild completed successfully")
+    }
+    
+    /// Upgrade FTS5 tables with enhanced configuration (used in migrations)
+    /// This drops existing FTS tables and recreates them with new tokenization settings
+    static func upgradeFTSTables(in db: Database) throws {
+        Logger.info("Upgrading FTS5 tables with enhanced tokenization...")
+        
+        // Drop old FTS tables and their triggers
+        try db.execute(sql: "DROP TABLE IF EXISTS tracks_fts")
+        try db.execute(sql: "DROP TABLE IF EXISTS albums_fts")
+        try db.execute(sql: "DROP TABLE IF EXISTS artists_fts")
+        try db.execute(sql: "DROP TABLE IF EXISTS genres_fts")
+        try db.execute(sql: "DROP TABLE IF EXISTS playlists_fts")
+        
+        // Drop old triggers
+        let triggersToDrop = [
+            "tracks_fts_insert", "tracks_fts_delete", "tracks_fts_update",
+            "albums_fts_insert", "albums_fts_delete", "albums_fts_update",
+            "artists_fts_insert", "artists_fts_delete", "artists_fts_update",
+            "genres_fts_insert", "genres_fts_delete", "genres_fts_update",
+            "playlists_fts_insert", "playlists_fts_delete", "playlists_fts_update"
+        ]
+        
+        for trigger in triggersToDrop {
+            try db.execute(sql: "DROP TRIGGER IF EXISTS \(trigger)")
+        }
+        
+        // Recreate with enhanced configuration
+        try createFTSTables(in: db)
+        
+        // Rebuild FTS tables with existing data from content tables
+        Logger.info("Rebuilding FTS5 indexes from existing data...")
+        
+        // Use FTS5's 'rebuild' command to repopulate from content tables
+        try db.execute(sql: "INSERT INTO tracks_fts(tracks_fts) VALUES('rebuild')")
+        try db.execute(sql: "INSERT INTO albums_fts(albums_fts) VALUES('rebuild')")
+        try db.execute(sql: "INSERT INTO artists_fts(artists_fts) VALUES('rebuild')")
+        try db.execute(sql: "INSERT INTO genres_fts(genres_fts) VALUES('rebuild')")
+        try db.execute(sql: "INSERT INTO playlists_fts(playlists_fts) VALUES('rebuild')")
+        
+        // Optimize FTS tables for better query performance
+        try db.execute(sql: "INSERT INTO tracks_fts(tracks_fts) VALUES('optimize')")
+        try db.execute(sql: "INSERT INTO albums_fts(albums_fts) VALUES('optimize')")
+        try db.execute(sql: "INSERT INTO artists_fts(artists_fts) VALUES('optimize')")
+        try db.execute(sql: "INSERT INTO genres_fts(genres_fts) VALUES('optimize')")
+        try db.execute(sql: "INSERT INTO playlists_fts(playlists_fts) VALUES('optimize')")
+        
+        Logger.info("FTS5 tables upgraded and rebuilt successfully")
+    }
 }
 
 // MARK: - Local Enums

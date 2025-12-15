@@ -18,8 +18,9 @@ extension PlaybackController {
             return
         }
         
+        // Toggle the favorite status
         track.isFavorite.toggle()
-        currentTrack?.isFavorite = track.isFavorite
+        currentTrack = track
         // Update in database
         Task {
             do {

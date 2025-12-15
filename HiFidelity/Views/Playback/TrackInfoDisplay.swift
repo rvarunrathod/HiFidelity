@@ -110,25 +110,20 @@ struct TrackInfoDisplay: View {
     // MARK: - Favorite Button
     
     private func favoriteButton(for track: Track) -> some View {
-        FavoriteButton(
-            isFavorite: track.isFavorite,
-            action: { playback.toggleFavorite() }
-        )
+        FavoriteButton()
     }
     
     private struct FavoriteButton: View {
-        let isFavorite: Bool
-        let action: () -> Void
-        
+        @ObservedObject private var playback = PlaybackController.shared
         @ObservedObject var theme = AppTheme.shared
         @State private var isHovered = false
         
         var body: some View {
-            Button(action: action) {
-                Image(systemName: isFavorite ? "heart.fill" : "heart")
+            Button(action: { playback.toggleFavorite() }) {
+                Image(systemName: (playback.currentTrack?.isFavorite ?? false) ? "heart.fill" : "heart")
                     .font(.system(size: 16, weight: .semibold))
                     .symbolRenderingMode(.hierarchical)
-                    .foregroundColor(isFavorite ? theme.currentTheme.primaryColor : .secondary)
+                    .foregroundColor((playback.currentTrack?.isFavorite ?? false) ? theme.currentTheme.primaryColor : .secondary)
                     .frame(width: 32, height: 32)
                     .background(
                         Circle()
@@ -136,13 +131,14 @@ struct TrackInfoDisplay: View {
                     )
                     .scaleEffect(isHovered ? 1.1 : 1.0)
                     .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isHovered)
+                    .animation(.spring(response: 0.2, dampingFraction: 0.8), value: playback.currentTrack?.isFavorite)
                     .contentShape(Circle())
             }
             .buttonStyle(.plain)
             .onHover { hovering in
                 isHovered = hovering
             }
-            .help(isFavorite ? "Remove from Favorites" : "Add to Favorites")
+            .help((playback.currentTrack?.isFavorite ?? false) ? "Remove from Favorites" : "Add to Favorites")
         }
     }
     

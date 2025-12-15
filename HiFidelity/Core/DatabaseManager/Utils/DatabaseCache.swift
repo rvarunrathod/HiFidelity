@@ -60,6 +60,14 @@ final class DatabaseCache: ObservableObject, @unchecked Sendable {
             object: nil
         )
         
+        // Invalidate folders cache when folders change
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(invalidateFoldersCache),
+            name: .foldersDataDidChange,
+            object: nil
+        )
+        
         // Invalidate only playlist cache when playlists change
         NotificationCenter.default.addObserver(
             self,
@@ -88,6 +96,17 @@ final class DatabaseCache: ObservableObject, @unchecked Sendable {
         // Also clear artwork cache since tracks may have changed
         Task {
             ArtworkCache.shared.clearAll()
+        }
+    }
+    
+    @objc private func invalidateFoldersCache() {
+        Logger.debug("Folders cache invalidated due to folder change")
+        foldersCache = nil
+        lastFolderRefresh = nil
+        
+        // Notify UI to refresh
+        Task { @MainActor in
+            self.objectWillChange.send()
         }
     }
     

@@ -56,8 +56,15 @@ struct SearchResultsView: View {
     private var searchHeader: some View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
-                Text("Search Results")
-                    .font(.system(size: 24, weight: .bold))
+                HStack(spacing: 8) {
+                    Text("Search Results")
+                        .font(.system(size: 24, weight: .bold))
+                    
+                    Image(systemName: "info.circle")
+                        .font(.system(size: 14))
+                        .foregroundColor(.secondary)
+                        .help("Search tips:\n• Results ranked by relevance (title > artist > album)\n• Use quotes for exact phrases: \"dark side\"\n• Prefix matching: \"beat\" matches \"beatles\"\n• Acronyms: \"BYOB\" matches \"B.Y.O.B\"\n• Combine terms: \"BYOB system\" for better results\n• Match All: all words must match\n• Match Any: broader results")
+                }
                 
                 if !results.isEmpty {
                     Text("\(results.totalCount) results for \"\(searchQuery)\"")

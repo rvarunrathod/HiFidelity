@@ -58,7 +58,12 @@ struct DatabaseMigrator {
             try DatabaseManager.createStatisticsUpdateTriggers(in: db)
         }
         
-        // Add new migrations here as: migrator.registerMigration("v5_description") { db in ... }
+        // v5: Upgrade FTS5 tables with improved tokenization and BM25 ranking
+        migrator.registerMigration("v5_enhanced_fts5") { db in
+            try DatabaseManager.upgradeFTSTables(in: db)
+        }
+        
+        // Add new migrations here as: migrator.registerMigration("v6_description") { db in ... }
         
         return migrator
     }

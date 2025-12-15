@@ -77,7 +77,7 @@ extension DatabaseManager {
                 composer,
                 content='tracks',
                 content_rowid='id',
-                tokenize='porter unicode61'
+                tokenize='unicode61 remove_diacritics 2'
             )
         """)
         
@@ -90,7 +90,7 @@ extension DatabaseManager {
                 album_artist,
                 content='albums',
                 content_rowid='id',
-                tokenize='porter unicode61'
+                tokenize='unicode61 remove_diacritics 2'
             )
         """)
         
@@ -102,7 +102,7 @@ extension DatabaseManager {
                 normalized_name,
                 content='artists',
                 content_rowid='id',
-                tokenize='porter unicode61'
+                tokenize='unicode61 remove_diacritics 2'
             )
         """)
         
@@ -114,7 +114,7 @@ extension DatabaseManager {
                 normalized_name,
                 content='genres',
                 content_rowid='id',
-                tokenize='porter unicode61'
+                tokenize='unicode61 remove_diacritics 2'
             )
         """)
         
@@ -126,7 +126,7 @@ extension DatabaseManager {
                 description,
                 content='playlists',
                 content_rowid='id',
-                tokenize='porter unicode61'
+                tokenize='unicode61 remove_diacritics 2'
             )
         """)
         

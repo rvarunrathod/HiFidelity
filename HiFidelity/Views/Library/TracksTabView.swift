@@ -20,9 +20,12 @@ struct TracksTabView: View {
     @State private var sortedTracks: [Track] = []
     @State private var isLoading = false
     @State private var hasLoadedOnce = false
+    @AppStorage("tracksViewType") private var savedViewType: String = "list"
+    @AppStorage("tracksSortField") private var savedSortField: String = "title"
+    @AppStorage("tracksSortAscending") private var savedSortAscending: Bool = true
     @State private var viewType: ViewType = .list
     @State private var selectedTrack: Track.ID?
-    @State private var sortOrder = [KeyPathComparator(\Track.title, order: .forward)]
+    @State private var sortOrder: [KeyPathComparator<Track>] = [KeyPathComparator(\Track.title, order: .forward)]
     @State private var selectedFilter: TrackFilter? = nil
     
     init(isVisible: Bool = true) {
@@ -54,6 +57,14 @@ struct TracksTabView: View {
             }
         }
         .onAppear {
+            // Restore saved view type
+            viewType = savedViewType == "grid" ? .grid : .list
+            
+            // Restore saved sort order
+            if let field = TrackSortField.allFields.first(where: { $0.rawValue == savedSortField }) {
+                sortOrder = [field.getComparator(ascending: savedSortAscending)]
+            }
+            
             if isVisible && !hasLoadedOnce {
                 Task {
                     await loadTracks()
@@ -68,6 +79,7 @@ struct TracksTabView: View {
         }
         .onChange(of: sortOrder) { oldValue, newValue in
             if oldValue != newValue {
+                saveSortOrder(newValue)
                 performBackgroundSort(with: newValue)
             }
         }
@@ -113,6 +125,7 @@ struct TracksTabView: View {
         HStack(spacing: 0) {
             Button {
                 viewType = .list
+                savedViewType = "list"
             } label: {
                 Image(systemName: "list.bullet")
                     .font(.system(size: 13))
@@ -127,6 +140,7 @@ struct TracksTabView: View {
             
             Button {
                 viewType = .grid
+                savedViewType = "grid"
             } label: {
                 Image(systemName: "square.grid.2x2")
                     .font(.system(size: 13))
@@ -295,9 +309,8 @@ struct TracksTabView: View {
     // MARK: - Sorting Helpers
     
     private func initializeSortedTracks() {
-        let defaultComparator = KeyPathComparator(\Track.title, order: .forward)
-        sortOrder = [defaultComparator]
-        sortedTracks = filteredTracks.sorted(using: [defaultComparator])
+        // Use current sort order instead of resetting to default
+        sortedTracks = filteredTracks.sorted(using: sortOrder)
     }
     
     private func performBackgroundSort(with newSortOrder: [KeyPathComparator<Track>]) {
@@ -306,6 +319,34 @@ struct TracksTabView: View {
             let sorted = tracksToSort.sorted(using: newSortOrder)
             await MainActor.run {
                 self.sortedTracks = sorted
+            }
+        }
+    }
+    
+    private func saveSortOrder(_ sortOrder: [KeyPathComparator<Track>]) {
+        guard let firstSort = sortOrder.first else { return }
+        
+        let sortString = String(describing: firstSort)
+        let isAscending = sortString.contains("forward")
+        
+        // Map comparator to field
+        let sortKeyMap: [String: TrackSortField] = [
+            "title": .title,
+            "artist": .artist,
+            "album": .album,
+            "genre": .genre,
+            "year": .year,
+            "duration": .duration,
+            "playCount": .playCount,
+            "codec": .codec,
+            "dateAdded": .dateAdded
+        ]
+        
+        for (key, field) in sortKeyMap {
+            if sortString.contains(key) {
+                savedSortField = field.rawValue
+                savedSortAscending = isAscending
+                break
             }
         }
     }
@@ -329,7 +370,7 @@ enum TrackFilter: String, CaseIterable {
 
 // MARK: - Track Sort Field
 
-enum TrackSortField: Hashable {
+enum TrackSortField: String, Hashable {
     case title
     case artist
     case album
@@ -355,6 +396,10 @@ enum TrackSortField: Hashable {
     }
     
     static var regularFields: [TrackSortField] {
+        [.title, .artist, .album, .genre, .year, .duration, .playCount, .codec, .dateAdded]
+    }
+    
+    static var allFields: [TrackSortField] {
         [.title, .artist, .album, .genre, .year, .duration, .playCount, .codec, .dateAdded]
     }
     

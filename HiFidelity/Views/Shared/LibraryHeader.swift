@@ -136,6 +136,7 @@ struct SortOption: Identifiable, Equatable {
     enum SortType {
         case alphabetical
         case dateAdded
+        case year
         case trackCount
         case albumCount
         case playCount

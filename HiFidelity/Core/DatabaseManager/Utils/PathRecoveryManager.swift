@@ -99,6 +99,9 @@ class PathRecoveryManager {
         await MainActor.run {
             NotificationCenter.default.post(name: .libraryDataDidChange, object: nil)
         }
+        await MainActor.run {
+            NotificationCenter.default.post(name: .foldersDataDidChange, object: nil)
+        }
     }
     
     

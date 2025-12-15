@@ -11,6 +11,8 @@ struct AdvancedSettings: View {
     @EnvironmentObject var databaseManager: DatabaseManager
     @AppStorage("artworkCacheSize") private var cacheSize: Double = 500
     @State private var showResetConfirm = false
+    @State private var isRebuildingFTS = false
+    @State private var isOptimizing = false
     
     var body: some View {
         VStack(alignment: .leading, spacing: 32) {
@@ -64,6 +66,7 @@ struct AdvancedSettings: View {
                 .font(.title3)
                 .fontWeight(.semibold)
             
+            // Database size and optimize
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Database Size")
@@ -78,13 +81,60 @@ struct AdvancedSettings: View {
                 Spacer()
                 
                 Button {
+                    isOptimizing = true
                     Task {
                         try? await databaseManager.vacuumDatabase()
+                        await MainActor.run {
+                            isOptimizing = false
+                        }
                     }
                 } label: {
-                    Text("Optimize")
-                        .font(.subheadline)
+                    HStack(spacing: 6) {
+                        if isOptimizing {
+                            ProgressView()
+                                .scaleEffect(0.7)
+                                .frame(width: 12, height: 12)
+                        }
+                        Text(isOptimizing ? "Optimizing..." : "Optimize")
+                            .font(.subheadline)
+                    }
                 }
+                .disabled(isOptimizing)
+            }
+            
+            // FTS rebuild
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Search Index")
+                        .font(.subheadline)
+                    Text("Rebuild full-text search tables for better results")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                
+                Spacer()
+                
+                Button {
+                    isRebuildingFTS = true
+                    Task {
+                        try? await databaseManager.rebuildFTS()
+                        await MainActor.run {
+                            isRebuildingFTS = false
+                        }
+                    }
+                } label: {
+                    HStack(spacing: 6) {
+                        if isRebuildingFTS {
+                            ProgressView()
+                                .scaleEffect(0.7)
+                                .frame(width: 12, height: 12)
+                        }
+                        Text(isRebuildingFTS ? "Rebuilding..." : "Rebuild FTS")
+                            .font(.subheadline)
+                    }
+                }
+                .disabled(isRebuildingFTS)
+                .help("Rebuild full-text search indexes to apply enhanced search configuration")
             }
         }
     }

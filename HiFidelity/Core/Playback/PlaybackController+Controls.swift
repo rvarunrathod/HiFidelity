@@ -22,6 +22,9 @@ extension PlaybackController {
             }
             duration = audioEngine.getDuration()
             audioEngine.setVolume(Float(isMuted ? 0 : volume))
+            
+            // Update stream info immediately
+            currentStreamInfo = audioEngine.getStreamInfo()
         }
         // Load track if not already loaded
         else if !audioEngine.isPlaying() && currentTime == 0 {
@@ -32,6 +35,9 @@ extension PlaybackController {
             
             duration = audioEngine.getDuration()
             audioEngine.setVolume(Float(isMuted ? 0 : volume))
+            
+            // Update stream info immediately
+            currentStreamInfo = audioEngine.getStreamInfo()
         }
         
         // Play

@@ -26,6 +26,12 @@ struct LibrarySettings: View {
             
             Divider()
             
+            // Import progress section
+            if databaseManager.isImporting {
+                importProgressSection
+                Divider()
+            }
+            
             // Folder monitoring control
             folderMonitoringSection
             
@@ -49,6 +55,7 @@ struct LibrarySettings: View {
                             ForEach(folders) { folder in
                                 FolderRow(
                                     folder: folder,
+                                    isImporting: databaseManager.isImporting,
                                     onScan: {
                                         Task {
                                             await scanFolder(folder)
@@ -95,11 +102,72 @@ struct LibrarySettings: View {
         .task {
             await loadFolders()
         }
-        .onReceive(NotificationCenter.default.publisher(for: .libraryDataDidChange)) { _ in
+        .onReceive(NotificationCenter.default.publisher(for: .foldersDataDidChange)) { _ in
             Task {
                 await loadFolders()
             }
         }
+    }
+    
+    // MARK: - Import Progress Section
+    
+    private var importProgressSection: some View {
+        VStack(spacing: 10) {
+            HStack(spacing: 12) {
+                // Icon
+                ProgressView()
+                    .scaleEffect(0.8)
+                    .frame(width: 24)
+                
+                // Info
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Importing Music")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(.primary)
+                    
+                    if !databaseManager.currentImportingFolder.isEmpty {
+                        Text(databaseManager.currentImportingFolder)
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundColor(theme.currentTheme.primaryColor)
+                    }
+                    
+                    if !databaseManager.importStatusMessage.isEmpty {
+                        Text(databaseManager.importStatusMessage)
+                            .font(.system(size: 10))
+                            .foregroundColor(.secondary)
+                    }
+                }
+                
+                Spacer()
+                
+                // Progress percentage
+                if databaseManager.importProgress > 0 {
+                    Text("\(Int(databaseManager.importProgress * 100))%")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(theme.currentTheme.primaryColor)
+                }
+            }
+            
+            // Progress bar
+            GeometryReader { geometry in
+                ZStack(alignment: .leading) {
+                    // Background
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(Color.gray.opacity(0.2))
+                        .frame(height: 4)
+                    
+                    // Progress
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(theme.currentTheme.primaryColor)
+                        .frame(width: max(0, geometry.size.width * databaseManager.importProgress), height: 4)
+                        .animation(.easeInOut, value: databaseManager.importProgress)
+                }
+            }
+            .frame(height: 4)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(theme.currentTheme.primaryColor.opacity(0.05))
     }
     
     // MARK: - Folder Monitoring Section
@@ -164,10 +232,12 @@ struct LibrarySettings: View {
                 .padding(.vertical, 8)
                 .background(
                     RoundedRectangle(cornerRadius: 20)
-                        .fill(theme.currentTheme.primaryColor)
+                        .fill(databaseManager.isImporting ? Color.gray : theme.currentTheme.primaryColor)
                 )
             }
             .buttonStyle(.plain)
+            .disabled(databaseManager.isImporting)
+            .opacity(databaseManager.isImporting ? 0.5 : 1.0)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 16)
@@ -189,15 +259,17 @@ struct LibrarySettings: View {
                     Text("Scan All")
                         .font(.system(size: 13, weight: .medium))
                 }
-                .foregroundColor(theme.currentTheme.primaryColor)
+                .foregroundColor(databaseManager.isImporting ? .gray : theme.currentTheme.primaryColor)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 7)
                 .background(
                     RoundedRectangle(cornerRadius: 16)
-                        .fill(theme.currentTheme.primaryColor.opacity(0.15))
+                        .fill(databaseManager.isImporting ? Color.gray.opacity(0.15) : theme.currentTheme.primaryColor.opacity(0.15))
                 )
             }
             .buttonStyle(.plain)
+            .disabled(databaseManager.isImporting)
+            .opacity(databaseManager.isImporting ? 0.5 : 1.0)
             
             // Delete All button
             Button {
@@ -209,15 +281,17 @@ struct LibrarySettings: View {
                     Text("Delete All")
                         .font(.system(size: 13, weight: .medium))
                 }
-                .foregroundColor(.red)
+                .foregroundColor(databaseManager.isImporting ? .gray : .red)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 7)
                 .background(
                     RoundedRectangle(cornerRadius: 16)
-                        .fill(Color.red.opacity(0.15))
+                        .fill(databaseManager.isImporting ? Color.gray.opacity(0.15) : Color.red.opacity(0.15))
                 )
             }
             .buttonStyle(.plain)
+            .disabled(databaseManager.isImporting)
+            .opacity(databaseManager.isImporting ? 0.5 : 1.0)
             
             Spacer()
         }
@@ -256,10 +330,12 @@ struct LibrarySettings: View {
                 .padding(.vertical, 8)
                 .background(
                     RoundedRectangle(cornerRadius: 20)
-                        .fill(theme.currentTheme.primaryColor)
+                        .fill(databaseManager.isImporting ? Color.gray : theme.currentTheme.primaryColor)
                 )
             }
             .buttonStyle(.plain)
+            .disabled(databaseManager.isImporting)
+            .opacity(databaseManager.isImporting ? 0.5 : 1.0)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
     }
@@ -301,6 +377,12 @@ struct LibrarySettings: View {
     }
     
     private func scanFolder(_ folder: Folder) async {
+        // Prevent scanning when import is already in progress
+        guard !databaseManager.isImporting else {
+            NotificationManager.shared.addMessage(.warning, "Please wait for the current import to finish")
+            return
+        }
+        
         do {
             try await databaseManager.rescanFolder(folder)
             await loadFolders()
@@ -310,6 +392,12 @@ struct LibrarySettings: View {
     }
     
     private func scanAllFolders() async {
+        // Prevent scanning when import is already in progress
+        guard !databaseManager.isImporting else {
+            NotificationManager.shared.addMessage(.warning, "Please wait for the current import to finish")
+            return
+        }
+        
         for folder in folders {
             do {
                 try await databaseManager.rescanFolder(folder)
@@ -322,6 +410,12 @@ struct LibrarySettings: View {
     }
     
     private func removeFolder(_ folder: Folder) async {
+        // Prevent removing folders when import is in progress
+        guard !databaseManager.isImporting else {
+            NotificationManager.shared.addMessage(.warning, "Please wait for the current import to finish")
+            return
+        }
+        
         do {
             try await databaseManager.removeFolder(folder)
             await loadFolders()
@@ -331,6 +425,12 @@ struct LibrarySettings: View {
     }
     
     private func removeAllFolders() async {
+        // Prevent removing folders when import is in progress
+        guard !databaseManager.isImporting else {
+            NotificationManager.shared.addMessage(.warning, "Please wait for the current import to finish")
+            return
+        }
+        
         for folder in folders {
             do {
                 try await databaseManager.removeFolder(folder)
@@ -347,6 +447,7 @@ struct LibrarySettings: View {
 
 struct FolderRow: View {
     let folder: Folder
+    let isImporting: Bool
     let onScan: () -> Void
     let onRemove: () -> Void
     
@@ -411,14 +512,16 @@ struct FolderRow: View {
                     } label: {
                         Image(systemName: "arrow.triangle.swap")
                             .font(.system(size: 12))
-                            .foregroundColor(.orange)
+                            .foregroundColor(isImporting ? .gray : .orange)
                             .frame(width: 24, height: 24)
                             .background(
                                 Circle()
-                                    .fill(Color.orange.opacity(0.15))
+                                    .fill(isImporting ? Color.gray.opacity(0.15) : Color.orange.opacity(0.15))
                             )
                     }
                     .buttonStyle(.plain)
+                    .disabled(isImporting)
+                    .opacity(isImporting ? 0.5 : 1.0)
                     .help("Relocate folder if moved")
                     
                     // Scan button
@@ -427,14 +530,16 @@ struct FolderRow: View {
                     } label: {
                         Image(systemName: "arrow.clockwise")
                             .font(.system(size: 12))
-                            .foregroundColor(theme.currentTheme.primaryColor)
+                            .foregroundColor(isImporting ? .gray : theme.currentTheme.primaryColor)
                             .frame(width: 24, height: 24)
                             .background(
                                 Circle()
-                                    .fill(theme.currentTheme.primaryColor.opacity(0.15))
+                                    .fill(isImporting ? Color.gray.opacity(0.15) : theme.currentTheme.primaryColor.opacity(0.15))
                             )
                     }
                     .buttonStyle(.plain)
+                    .disabled(isImporting)
+                    .opacity(isImporting ? 0.5 : 1.0)
                     .help("Scan folder")
                     
                     // Delete button
@@ -443,14 +548,16 @@ struct FolderRow: View {
                     } label: {
                         Image(systemName: "trash")
                             .font(.system(size: 12))
-                            .foregroundColor(.red)
+                            .foregroundColor(isImporting ? .gray : .red)
                             .frame(width: 24, height: 24)
                             .background(
                                 Circle()
-                                    .fill(Color.red.opacity(0.15))
+                                    .fill(isImporting ? Color.gray.opacity(0.15) : Color.red.opacity(0.15))
                             )
                     }
                     .buttonStyle(.plain)
+                    .disabled(isImporting)
+                    .opacity(isImporting ? 0.5 : 1.0)
                     .help("Remove folder")
                 }
                 .transition(.scale.combined(with: .opacity))

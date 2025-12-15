@@ -33,7 +33,7 @@ struct AppHeader: View {
             // Right: Controls
             trailingSection
         }
-        .padding(.horizontal, 20)
+        .padding(.horizontal, 6)
         .padding(.vertical, 14)
         .frame(height: 68)
         .background(headerBackground)
@@ -42,27 +42,14 @@ struct AppHeader: View {
     // MARK: - Leading Section
     
     private var leadingSection: some View {
-        HStack(spacing: 20) {
+        HStack(spacing: 2) {
             // App logo
-            HStack(spacing: 10) {
-                Image(systemName: "waveform.circle.fill")
-                    .font(.system(size: 36, weight: .semibold))
-                    .foregroundStyle(
-                        LinearGradient(
-                            colors: [
-                                theme.currentTheme.primaryColor,
-                                theme.currentTheme.primaryColor.opacity(0.65)
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .shadow(color: theme.currentTheme.primaryColor.opacity(0.2), radius: 3, y: 1)
-                
-                Text("HiFidelity")
-                    .font(.system(size: 20, weight: .bold, design: .rounded))
-                    .foregroundColor(.primary)
-            }
+            Image("HiFidelity long Logo")
+                .renderingMode(.template)
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .foregroundColor(theme.currentTheme.primaryColor)
+                .frame(width: 140, height: 64)
             
             // Left sidebar toggle
             ToggleButton(
@@ -116,7 +103,7 @@ struct AppHeader: View {
     // MARK: - Trailing Section
     
     private var trailingSection: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 2) {
             // Right sidebar toggle
             ToggleButton(
                 icon: "sidebar.right",

@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import AppKit
 
 /// Playlist sidebar showing pinned and user playlists
 struct PlaylistSidebarView: View {
@@ -292,7 +293,7 @@ struct PlaylistSidebarView: View {
     
     @ViewBuilder
     private func playlistContextMenu(_ playlist: PlaylistItem) -> some View {
-        if case .user = playlist.type {
+        if case .user(let playlistModel) = playlist.type {
             Button {
                 Task {
                     await viewModel.togglePin(playlist: playlist)
@@ -303,12 +304,51 @@ struct PlaylistSidebarView: View {
             
             Divider()
             
+            Button {
+                exportPlaylistToM3U(playlist: playlistModel)
+            } label: {
+                Label("Export as M3U", systemImage: "square.and.arrow.up")
+            }
+            
+            Divider()
+            
             Button(role: .destructive) {
                 Task {
                     try await databaseManager.deletePlaylist(playlist)
                 }
             } label: {
                 Label("Delete Playlist", systemImage: "trash")
+            }
+        }
+    }
+    
+    private func exportPlaylistToM3U(playlist: Playlist) {
+        guard let playlistId = playlist.id else { return }
+        
+        let panel = NSSavePanel()
+        panel.allowedContentTypes = [.init(filenameExtension: "m3u")!]
+        panel.nameFieldStringValue = "\(playlist.name).m3u"
+        panel.message = "Export playlist to M3U file"
+        panel.canCreateDirectories = true
+        
+        if panel.runModal() == .OK, let url = panel.url {
+            Task {
+                do {
+                    try await databaseManager.exportPlaylistToM3U(
+                        playlistId: playlistId,
+                        saveURL: url,
+                        useRelativePaths: false
+                    )
+                    
+                    Logger.info("Successfully exported playlist '\(playlist.name)' to \(url.path)")
+                    
+                    // Show success notification
+                    await MainActor.run {
+                        NSWorkspace.shared.activateFileViewerSelecting([url])
+                    }
+                } catch {
+                    Logger.error("Failed to export playlist: \(error)")
+                }
             }
         }
     }

@@ -261,8 +261,8 @@ enum EntityType: Identifiable, Hashable {
     var subtitle: String? {
         switch self {
         case .album(let album): return album.year
-        case .artist(let artist): return nil
-        case .genre(let genre): return nil
+        case .artist(_): return nil
+        case .genre(_): return nil
         case .playlist(let playlist):
             if case .smart(let smartType) = playlist.type {
                 return smartType.description

@@ -18,6 +18,9 @@ struct PlaylistSidebarView: View {
     @StateObject private var viewModel = PlaylistSidebarViewModel()
     @State private var searchText = ""
     @State private var showCreatePlaylist = false
+    @AppStorage("playlistSortOption") private var sortOptionId: String = "name"
+    @AppStorage("playlistSortAscending") private var sortAscending = true
+    @State private var sortOption: PlaylistSortOption = .name
     
     var body: some View {
         VStack(spacing: 0) {
@@ -86,8 +89,23 @@ struct PlaylistSidebarView: View {
         .task {
             await viewModel.loadPlaylists()
         }
+        .onAppear {
+            // Restore saved sort option
+            if let savedOption = PlaylistSortOption(rawValue: sortOptionId) {
+                sortOption = savedOption
+            }
+            // Apply initial sort
+            viewModel.sortPlaylists(by: sortOption, ascending: sortAscending)
+        }
         .onChange(of: searchText) { _, newValue in
             viewModel.filterPlaylists(query: newValue)
+        }
+        .onChange(of: sortOption) { _, newOption in
+            sortOptionId = newOption.rawValue
+            viewModel.sortPlaylists(by: sortOption, ascending: sortAscending)
+        }
+        .onChange(of: sortAscending) { _, _ in
+            viewModel.sortPlaylists(by: sortOption, ascending: sortAscending)
         }
         .sheet(isPresented: $showCreatePlaylist) {
             CreatePlaylistView()
@@ -120,6 +138,54 @@ struct PlaylistSidebarView: View {
         .frame(height: 52)
     }
 
+    private struct SortMenuButton: View {
+        @Binding var sortOption: PlaylistSortOption
+        @Binding var sortAscending: Bool
+        @State private var isHovered = false
+        @ObservedObject var theme = AppTheme.shared
+        
+        var body: some View {
+            Menu {
+                // Sort options
+                ForEach(PlaylistSortOption.allCases, id: \.self) { option in
+                    Button {
+                        if sortOption == option {
+                            sortAscending.toggle()
+                        } else {
+                            sortOption = option
+                            sortAscending = true
+                        }
+                    } label: {
+                        HStack {
+                            Text(option.label)
+                            Spacer()
+                            if sortOption == option {
+                                Image(systemName: sortAscending ? option.ascendingIcon : option.descendingIcon)
+                            }
+                        }
+                    }
+                }
+            } label: {
+                Image(systemName: "line.3.horizontal.decrease.circle")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(isHovered ? theme.currentTheme.primaryColor : .secondary)
+                    .frame(width: 32, height: 32)
+                    .background(
+                        Circle()
+                            .fill(isHovered ? theme.currentTheme.primaryColor.opacity(0.12) : Color.clear)
+                    )
+                    .scaleEffect(isHovered ? 1.08 : 1.0)
+                    .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isHovered)
+            }
+            .frame(width: 32)
+            .menuStyle(.borderlessButton)
+            .onHover { hovering in
+                isHovered = hovering
+            }
+            .help("Sort Playlists")
+        }
+    }
+    
     private struct CreatePlaylistButton: View {
         let action: () -> Void
         @State private var isHovered = false
@@ -168,6 +234,12 @@ struct PlaylistSidebarView: View {
                 }
                 .buttonStyle(.plain)
             }
+            
+            // Sort button
+            SortMenuButton(
+                sortOption: $sortOption,
+                sortAscending: $sortAscending
+            )
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 6)
@@ -432,6 +504,32 @@ final class PlaylistSidebarViewModel: ObservableObject {
         smartPlaylists = smartPlaylists.filter { $0.name.lowercased().contains(lowercased) }
         pinnedPlaylists = pinnedPlaylists.filter { $0.name.lowercased().contains(lowercased) }
         userPlaylists = userPlaylists.filter { $0.name.lowercased().contains(lowercased) }
+    }
+    
+    func sortPlaylists(by option: PlaylistSortOption, ascending: Bool) {
+        let sortFunction: (PlaylistItem, PlaylistItem) -> Bool = { item1, item2 in
+            let result: Bool
+            
+            switch option {
+            case .name:
+                result = item1.name.localizedCaseInsensitiveCompare(item2.name) == .orderedAscending
+            case .dateCreated:
+                let date1 = item1.createdDate ?? Date.distantPast
+                let date2 = item2.createdDate ?? Date.distantPast
+                result = date1 < date2
+            case .dateModified:
+                let date1 = item1.modifiedDate ?? Date.distantPast
+                let date2 = item2.modifiedDate ?? Date.distantPast
+                result = date1 < date2
+            case .trackCount:
+                result = item1.trackCount < item2.trackCount
+            }
+            
+            return ascending ? result : !result
+        }
+        
+        pinnedPlaylists.sort(by: sortFunction)
+        userPlaylists.sort(by: sortFunction)
     }
     
     func togglePin(playlist: PlaylistItem) async {

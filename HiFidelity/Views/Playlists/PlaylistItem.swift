@@ -64,6 +64,24 @@ struct PlaylistItem: Identifiable, Equatable, Hashable {
         return false
     }
     
+    var createdDate: Date? {
+        switch type {
+        case .user(let playlist):
+            return playlist.createdDate
+        case .smart:
+            return nil
+        }
+    }
+    
+    var modifiedDate: Date? {
+        switch type {
+        case .user(let playlist):
+            return playlist.modifiedDate
+        case .smart:
+            return nil
+        }
+    }
+    
     static func == (lhs: PlaylistItem, rhs: PlaylistItem) -> Bool {
         lhs.id == rhs.id
     }
@@ -104,3 +122,36 @@ enum SmartPlaylistType: String, CaseIterable {
     }
 }
 
+/// Playlist sort options
+enum PlaylistSortOption: String, CaseIterable, Hashable {
+    case name = "Name"
+    case dateCreated = "Date Created"
+    case dateModified = "Date Modified"
+    case trackCount = "Track Count"
+    
+    var label: String {
+        rawValue
+    }
+    
+    var ascendingIcon: String {
+        switch self {
+        case .name:
+            return "arrow.up"
+        case .dateCreated, .dateModified:
+            return "arrow.up"
+        case .trackCount:
+            return "arrow.up"
+        }
+    }
+    
+    var descendingIcon: String {
+        switch self {
+        case .name:
+            return "arrow.down"
+        case .dateCreated, .dateModified:
+            return "arrow.down"
+        case .trackCount:
+            return "arrow.down"
+        }
+    }
+}

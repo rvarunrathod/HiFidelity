@@ -123,7 +123,7 @@ extension PlaybackController {
     }
     
     func seekForward(_ seconds: Double = 10) {
-        let newTime = min(currentTime + seconds, duration)
+        let newTime = min(currentTime + seconds, duration - 1)
         seek(to: newTime)
     }
     

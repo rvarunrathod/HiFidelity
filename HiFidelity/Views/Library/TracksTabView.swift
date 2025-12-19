@@ -292,11 +292,6 @@ struct TracksTabView: View {
                 }
             case .unplayed:
                 filteredTracks = tracks.filter { $0.playCount == 0 }
-            case .highQuality:
-                filteredTracks = tracks.filter { 
-                    guard let bitrate = $0.bitrate else { return false }
-                    return bitrate >= 320
-                }
             }
         } else {
             filteredTracks = tracks
@@ -365,7 +360,6 @@ enum TrackFilter: String, CaseIterable {
     case favorites = "Favorites"
     case recentlyAdded = "Recently Added"
     case unplayed = "Unplayed"
-    case highQuality = "High Quality (320+ kbps)"
 }
 
 // MARK: - Track Sort Field
@@ -431,7 +425,7 @@ enum TrackSortField: String, Hashable {
 
 // MARK: - Track Table Options Dropdown
 
-private struct TrackTableOptionsDropdown: View {
+struct TrackTableOptionsDropdown: View {
     @Binding var sortOrder: [KeyPathComparator<Track>]
     @Binding var selectedFilter: TrackFilter?
     

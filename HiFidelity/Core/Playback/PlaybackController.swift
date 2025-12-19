@@ -112,6 +112,13 @@ class PlaybackController: ObservableObject {
         
         NotificationCenter.default.addObserver(
             self,
+            selector: #selector(handleGaplessTransition),
+            name: .bassGaplessTransition,
+            object: nil
+        )
+        
+        NotificationCenter.default.addObserver(
+            self,
             selector: #selector(handleDeviceChanged),
             name: .audioDeviceChanged,
             object: nil
@@ -229,6 +236,20 @@ class PlaybackController: ObservableObject {
                 } else {
                     self.next()
                 }
+            }
+        }
+    }
+    
+    @objc func handleGaplessTransition() {
+        Logger.info("Gapless transition triggered")
+        
+        // This is called 50ms before the track ends by the BASS sync callback
+        // Execute the gapless switch immediately for seamless transition
+        DispatchQueue.main.async {
+            if self.isNextTrackPreloaded && self.nextTrack != nil {
+                self.playPreloadedTrack()
+            } else {
+                Logger.warning("Gapless transition triggered but no preloaded track available")
             }
         }
     }

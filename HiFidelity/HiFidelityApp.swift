@@ -109,8 +109,8 @@ struct HiFidelityApp: App {
     }
     
     private func equalizerWindowContentView() -> some Scene {
-        // Separate window for Equalizer (non-blocking)
-        WindowGroup("Equalizer", id: "audio-effects") {
+        // Separate window for Equalizer (single instance only)
+        Window("Equalizer", id: "audio-effects") {
             EqualizerView()
                 .environmentObject(appTheme)
         }

@@ -315,7 +315,7 @@ extension DatabaseManager {
     /// - Returns: Array of import results
     func importMultiplePlaylistsFromM3U(m3uURLs: [URL]) async throws -> [(playlist: Playlist, foundCount: Int, skippedCount: Int)] {
         // Limit to 10 files
-        let limitedURLs = Array(m3uURLs.prefix(10))
+        let limitedURLs = Array(m3uURLs.prefix(25))
         
         var results: [(playlist: Playlist, foundCount: Int, skippedCount: Int)] = []
         
@@ -429,7 +429,7 @@ extension DatabaseManager {
     /// - Returns: Array of import results
     func importMultiplePlaylistsFromFolders(folderURLs: [URL]) async throws -> [(playlist: Playlist, foundCount: Int, skippedCount: Int)] {
         // Limit to 10 folders
-        let limitedURLs = Array(folderURLs.prefix(10))
+        let limitedURLs = Array(folderURLs.prefix(25))
         
         var results: [(playlist: Playlist, foundCount: Int, skippedCount: Int)] = []
         
@@ -463,6 +463,13 @@ extension DatabaseManager {
             guard let resourceValues = try? url.resourceValues(forKeys: [.isRegularFileKey]),
                   let isRegularFile = resourceValues.isRegularFile,
                   isRegularFile else {
+                return false
+            }
+            
+            // IMPORTANT: Skip macOS metadata files (._*)
+            // These are AppleDouble files created on non-Mac filesystems
+            let filename = url.lastPathComponent
+            if filename.hasPrefix("._") {
                 return false
             }
             

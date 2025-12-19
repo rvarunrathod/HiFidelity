@@ -5,6 +5,35 @@
         <description>Updates for HiFidelity - High-Fidelity Music Player</description>
         <language>en</language>
         <item>
+            <title>Version 1.0.7</title>
+            <pubDate>Fri, 19 Dec 2025 15:13:32 +0530</pubDate>
+            <sparkle:version>107</sparkle:version>
+            <sparkle:shortVersionString>1.0.7</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <enclosure
+                url="https://github.com/rvarunrathod/HiFidelity/releases/download/v1.0.7/HiFidelity-1.0.7-Universal.dmg"
+                sparkle:edSignature="hV5NbonvnBAJeMEUFIqu4cIeajWM4WcfI5J68oyi66q8p8tzFE8YT8p0/7Sh2A9aTbPT6HFi0zFfnqngmg/WAA=="
+                length="14046522"
+                type="application/octet-stream"
+            />
+            <description><![CDATA[
+                <h2>Improvement</h2>
+<ul>
+    <li>Added custom Equalizer option saving functionality</li>
+    <li>Increased import playlist count to 25 in one go and don't check for AppleDouble metadata files when importing playlist</li>
+    <li>Added Sorting in Album/Playlist/Artists Entity view</li>
+    <li>Added playlist sorting functionality</li>
+    <li>Added keyboard shortcut for playback</li>
+    <li>Added equalizer icon near playback controller</li>
+</ul>
+<h2>Fixes</h2>
+<ul>
+    <li>Fix repeat song again functionality</li>
+</ul>
+<p><a href="https://github.com/rvarunrathod/HiFidelity/compare/v1.0.6...v1.0.7">Full Changelog</a></p>
+            ]]></description>
+        </item>
+        <item>
             <title>Version 1.0.6</title>
             <pubDate>Mon, 15 Dec 2025 14:03:49 +0530</pubDate>
             <sparkle:version>106</sparkle:version>

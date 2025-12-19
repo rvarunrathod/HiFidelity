@@ -420,17 +420,28 @@ extension DACManager {
         
         // Get previous device list
         let previousDeviceIDs = Set(availableDevices.map { $0.id })
-        Logger.debug("Previous device IDs: \(previousDeviceIDs), current device ID: \(currentDeviceID)")
+        Logger.info("Previous device IDs: \(previousDeviceIDs), current device ID: \(currentDeviceID)")
         
         // Refresh device list
         refreshDeviceList()
         
         // Get new device list
         let currentDeviceIDs = Set(availableDevices.map { $0.id })
-        Logger.debug("Current device IDs: \(currentDeviceIDs)")
+        Logger.info("Current device IDs: \(currentDeviceIDs)")
         
         // Check for removed devices
         let removedDevices = previousDeviceIDs.subtracting(currentDeviceIDs)
+        
+        
+        // If the CURRENT device is in the "removed" list, double-check if it's actually gone from the system.
+        if currentDeviceID != 0 && removedDevices.contains(currentDeviceID) {
+            if doesDeviceIDExist(currentDeviceID) {
+                Logger.info("⚠️ Device \(currentDeviceID) lost output streams but is still attached. Ignoring removal event.")
+                // Determine if we should pause playback or just wait.
+                // For now, we simply return to prevent the "Device Removed" shutdown logic.
+                return
+            }
+        }
         
         // Check if current device was removed
         // Handle two cases: 1) explicit device ID removed, 2) currentDeviceID is 0/invalid and devices were removed
@@ -668,6 +679,42 @@ extension DACManager {
         }
         
         return outputDevices
+    }
+    
+    /// Helper: Checks if a device ID technically still exists in the system (even if it has no streams currently)
+    private func doesDeviceIDExist(_ id: AudioDeviceID) -> Bool {
+        var propertyAddress = AudioObjectPropertyAddress(
+            mSelector: kAudioHardwarePropertyDevices,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        
+        var propertySize: UInt32 = 0
+        let status = AudioObjectGetPropertyDataSize(
+            AudioObjectID(kAudioObjectSystemObject),
+            &propertyAddress,
+            0,
+            nil,
+            &propertySize
+        )
+        
+        guard status == noErr else { return false }
+        
+        let deviceCount = Int(propertySize) / MemoryLayout<AudioDeviceID>.size
+        var deviceIDs = [AudioDeviceID](repeating: 0, count: deviceCount)
+        
+        let getStatus = AudioObjectGetPropertyData(
+            AudioObjectID(kAudioObjectSystemObject),
+            &propertyAddress,
+            0,
+            nil,
+            &propertySize,
+            &deviceIDs
+        )
+        
+        guard getStatus == noErr else { return false }
+        
+        return deviceIDs.contains(id)
     }
     
     /// Check if device has output streams

@@ -232,7 +232,7 @@ class BASSAudioEngine {
                     Logger.error("Failed to initialize BASS device: \(BASS_ErrorGetCode())")
                     return
                 }
-                applyAudioSettings()
+                // Note: No need to reapply BASS_SetConfig - settings are global
             }
         }
         
@@ -256,11 +256,14 @@ class BASSAudioEngine {
     private func handleDeviceChange(to device: AudioOutputDevice) {
         Logger.info("Handling device change to: \(device.name)")
         
-        let bassDeviceNumber = findMatchingBASSDeviceForID(device.id)
-        guard bassDeviceNumber != -1 else {
+        let newDeviceNumber = findMatchingBASSDeviceForID(device.id)
+        guard newDeviceNumber != -1 else {
             Logger.error("Could not find matching BASS device for: \(device.name)")
             return
         }
+        
+        // Get current device before switching (for cleanup)
+        let oldDeviceNumber = BASS_GetDevice()
         
         // Check if stream was playing before the device change
         let wasPlaying = currentStream != 0 && BASS_ChannelIsActive(currentStream) == DWORD(BASS_ACTIVE_PLAYING)
@@ -268,35 +271,35 @@ class BASSAudioEngine {
             Logger.debug("Stream was playing before device change")
         }
         
-        // Initialize device if needed
+        // Step 1: Initialize new device if needed
         var deviceInfo = BASS_DEVICEINFO()
-        if BASS_GetDeviceInfo(DWORD(bassDeviceNumber), &deviceInfo) != 0 {
+        if BASS_GetDeviceInfo(DWORD(newDeviceNumber), &deviceInfo) != 0 {
             if deviceInfo.flags & DWORD(BASS_DEVICE_INIT) == 0 {
-                Logger.info("Initializing BASS device \(bassDeviceNumber)")
-                let result = BASS_Init(bassDeviceNumber, DWORD(device.sampleRate), 0, nil, nil)
+                Logger.info("Initializing BASS device \(newDeviceNumber)")
+                let result = BASS_Init(newDeviceNumber, DWORD(device.sampleRate), 0, nil, nil)
                 if result == 0 {
                     Logger.error("Failed to initialize new device: \(BASS_ErrorGetCode())")
                     return
                 }
-                applyAudioSettings()
+                // Note: No need to reapply BASS_SetConfig, BASS_PluginLoad - they are global
             }
         }
-        
-        // Switch to new device
-        if BASS_SetDevice(DWORD(bassDeviceNumber)) == 0 {
-            Logger.error("Failed to bass set device: \(BASS_ErrorGetCode())")
-        }
-        Logger.debug("BASS device set to \(bassDeviceNumber)")
         
         // Try to move existing streams
         var streamMovedSuccessfully = false
         
+        // Step 2: Move stream(s) to new device
         if currentStream != 0 {
-            streamMovedSuccessfully = BASS_ChannelSetDevice(currentStream, DWORD(bassDeviceNumber)) != 0
+            streamMovedSuccessfully = BASS_ChannelSetDevice(currentStream, DWORD(newDeviceNumber)) != 0
             Logger.info(streamMovedSuccessfully ? "✓ Stream moved to new device" : "⚠️ Stream move failed - reload needed")
             
             // If stream was moved successfully and was playing, ensure it continues playing on new device
             if streamMovedSuccessfully && wasPlaying {
+                // Switch to new device to start it
+                if BASS_SetDevice(DWORD(newDeviceNumber)) == 0 {
+                    Logger.error("Failed to set new device context: \(BASS_ErrorGetCode())")
+                }
+                
                 // Ensure the output device is started
                 if BASS_IsStarted() == 0 {
                     Logger.debug("Starting output on new device")
@@ -319,10 +322,31 @@ class BASSAudioEngine {
         }
         
         if nextStream != 0 {
-            if BASS_ChannelSetDevice(nextStream, DWORD(bassDeviceNumber)) == 0 {
+            if BASS_ChannelSetDevice(nextStream, DWORD(newDeviceNumber)) == 0 {
                 BASS_StreamFree(nextStream)
                 nextStream = 0
             }
+        }
+        
+        // Step 3: Free old device (if it's different and was initialized)
+        if oldDeviceNumber != DWORD(newDeviceNumber) && oldDeviceNumber != DWORD(bitPattern: Int32.max) {
+            var oldDeviceInfo = BASS_DEVICEINFO()
+            if BASS_GetDeviceInfo(oldDeviceNumber, &oldDeviceInfo) != 0 {
+                if oldDeviceInfo.flags & DWORD(BASS_DEVICE_INIT) != 0 {
+                    // Set context to old device and free it
+                    if BASS_SetDevice(oldDeviceNumber) != 0 {
+                        BASS_Free()
+                        Logger.info("✓ Freed old device \(oldDeviceNumber)")
+                    } else {
+                        Logger.warning("Could not set old device context to free it: \(BASS_ErrorGetCode())")
+                    }
+                }
+            }
+        }
+        
+        // Ensure we're back on the new device context
+        if BASS_SetDevice(DWORD(newDeviceNumber)) == 0 {
+            Logger.warning("Failed to restore new device context: \(BASS_ErrorGetCode())")
         }
         
         // Post completion notification

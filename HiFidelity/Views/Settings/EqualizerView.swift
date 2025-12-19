@@ -13,10 +13,23 @@ import SwiftUI
 struct EqualizerView: View {
     @ObservedObject var effectsManager = AudioEffectsManager.shared
     @ObservedObject var theme = AppTheme.shared
-    @State private var selectedEQPreset: EQPreset = .flat
-    @State private var isCustomMode = false
+    @State private var showSavePresetDialog = false
+    @State private var newPresetName = ""
+    @State private var showAlert = false
+    @State private var alertMessage = ""
+    @State private var showDeleteConfirmation = false
+    @State private var presetToDelete: CustomEQPreset?
     
     private let frequencies = ["32 Hz", "64 Hz", "125 Hz", "250 Hz", "500 Hz", "1 kHz", "2 kHz", "4 kHz", "8 kHz", "16 kHz"]
+    
+    // Computed properties based on effectsManager state
+    private var isCustomMode: Bool {
+        effectsManager.currentPresetType == .userModified
+    }
+    
+    private var displayPresetName: String {
+        effectsManager.currentPresetName
+    }
     
     var body: some View {
         VStack(spacing: 0) {
@@ -39,8 +52,75 @@ struct EqualizerView: View {
             }
         }
         .frame(minWidth: 600, minHeight: 500)
-            .background(Color(nsColor: .windowBackgroundColor))
-        
+        .background(Color(nsColor: .windowBackgroundColor))
+        .sheet(isPresented: $showSavePresetDialog) {
+            savePresetDialog
+        }
+        .alert("Preset Manager", isPresented: $showAlert) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(alertMessage)
+        }
+        .alert("Delete Preset", isPresented: $showDeleteConfirmation) {
+            Button("Cancel", role: .cancel) {}
+            Button("Delete", role: .destructive) {
+                if let preset = presetToDelete {
+                    effectsManager.deleteCustomPreset(preset)
+                    alertMessage = "Preset '\(preset.name)' deleted"
+                    showAlert = true
+                }
+                presetToDelete = nil
+            }
+        } message: {
+            if let preset = presetToDelete {
+                Text("Are you sure you want to delete '\(preset.name)'? This action cannot be undone.")
+            }
+        }
+    }
+    
+    // MARK: - Save Preset Dialog
+    
+    private var savePresetDialog: some View {
+        VStack(spacing: 20) {
+            Text("Save Custom Preset")
+                .font(.title2)
+                .fontWeight(.semibold)
+            
+            Text("Enter a name for your custom equalizer preset")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+            
+            TextField("Preset Name", text: $newPresetName)
+                .textFieldStyle(.roundedBorder)
+                .frame(width: 300)
+            
+            HStack(spacing: 12) {
+                Button("Cancel") {
+                    showSavePresetDialog = false
+                    newPresetName = ""
+                }
+                .keyboardShortcut(.escape)
+                
+                Button("Save") {
+                    if newPresetName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        alertMessage = "Please enter a valid preset name"
+                        showAlert = true
+                    } else if effectsManager.saveCustomPreset(name: newPresetName) {
+                        showSavePresetDialog = false
+                        newPresetName = ""
+                        alertMessage = "Preset saved successfully!"
+                        showAlert = true
+                    } else {
+                        alertMessage = "A preset with this name already exists"
+                        showAlert = true
+                    }
+                }
+                .keyboardShortcut(.return)
+                .disabled(newPresetName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            }
+        }
+        .padding(30)
+        .frame(width: 400)
     }
     
     // MARK: - Control Bar
@@ -80,10 +160,38 @@ struct EqualizerView: View {
                     )
                 }
                 
+                // Save Custom Preset button
+                Button(action: {
+                    showSavePresetDialog = true
+                    newPresetName = ""
+                }) {
+                    Label("Save Preset", systemImage: "square.and.arrow.down")
+                        .font(.system(size: 13))
+                }
+                .buttonStyle(.bordered)
+                .disabled(!effectsManager.isEqualizerEnabled)
+                .help("Save current equalizer settings as a custom preset")
+                
+                // Delete Current Preset button (only shown for custom presets)
+                if effectsManager.currentPresetType == .custom {
+                    Button(action: {
+                        // Find the current custom preset and set it for deletion
+                        if let preset = effectsManager.customPresets.first(where: { $0.name == effectsManager.currentPresetName }) {
+                            presetToDelete = preset
+                            showDeleteConfirmation = true
+                        }
+                    }) {
+                        Label("Delete Preset", systemImage: "trash")
+                            .font(.system(size: 13))
+                    }
+                    .buttonStyle(.bordered)
+                    .foregroundColor(.red)
+                    .disabled(!effectsManager.isEqualizerEnabled)
+                    .help("Delete the current custom preset")
+                }
+                
                 Button(action: {
                     effectsManager.resetEqualizer()
-                    isCustomMode = false
-                    selectedEQPreset = .flat
                 }) {
                     Label("Reset All", systemImage: "arrow.counterclockwise")
                         .font(.system(size: 13))
@@ -102,37 +210,53 @@ struct EqualizerView: View {
                     .foregroundColor(.secondary)
                 
                 Menu {
-                    // Custom mode (shown when user manually adjusts)
-                    if isCustomMode {
-                        Button(action: {}) {
-                            HStack {
-                                Text("Custom")
-                                Image(systemName: "checkmark")
-                            }
-                        }
-                        .disabled(true)
-                        
-                        Divider()
-                    }
-                    
-                    // All presets
+                    // Built-in presets
                     ForEach(EQPreset.allCases) { preset in
                         Button(action: {
-                            selectedEQPreset = preset
-                            isCustomMode = false
                             applyEQPreset(preset)
                         }) {
                             HStack {
                                 Text(preset.name)
-                                if !isCustomMode && selectedEQPreset == preset {
+                                if effectsManager.currentPresetType == .builtin && 
+                                   effectsManager.currentPresetName == preset.name {
                                     Image(systemName: "checkmark")
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Custom presets section
+                    if !effectsManager.customPresets.isEmpty {
+                        Divider()
+                        
+                        Section(header: Text("My Presets")) {
+                            ForEach(effectsManager.customPresets) { preset in
+                                Button(action: {
+                                    applyCustomPreset(preset)
+                                }) {
+                                    HStack {
+                                        Text(preset.name)
+                                        if effectsManager.currentPresetType == .custom && 
+                                           effectsManager.currentPresetName == preset.name {
+                                            Spacer()
+                                            Image(systemName: "checkmark")
+                                        }
+                                    }
+                                }
+                                .contextMenu {
+                                    Button(role: .destructive, action: {
+                                        presetToDelete = preset
+                                        showDeleteConfirmation = true
+                                    }) {
+                                        Label("Delete Preset", systemImage: "trash")
+                                    }
                                 }
                             }
                         }
                     }
                 } label: {
                     HStack(spacing: 6) {
-                        Text(isCustomMode ? "Custom" : selectedEQPreset.name)
+                        Text(displayPresetName)
                             .font(.system(size: 13))
                         Image(systemName: "chevron.down.circle.fill")
                             .font(.system(size: 12))
@@ -193,7 +317,6 @@ struct EqualizerView: View {
                             get: { Double(effectsManager.equalizerBands[index]) },
                             set: { newValue in
                                 effectsManager.setEqualizerBand(index, gain: Float(newValue))
-                                switchToCustomMode()
                             }
                         ),
                         range: -12...12,
@@ -233,18 +356,13 @@ struct EqualizerView: View {
     private func applyEQPreset(_ preset: EQPreset) {
         effectsManager.isEqualizerEnabled = true
         effectsManager.setEqualizerEnabled(true)
-        
-        // Apply preset bands (preamp is independent and not affected)
-        effectsManager.equalizerBands = preset.bandValues
-        effectsManager.applyEqualizer()
+        effectsManager.applyBuiltinPreset(name: preset.name, bands: preset.bandValues)
     }
     
-    // MARK: - Custom Mode
-    
-    private func switchToCustomMode() {
-        if !isCustomMode {
-            isCustomMode = true
-        }
+    private func applyCustomPreset(_ preset: CustomEQPreset) {
+        effectsManager.isEqualizerEnabled = true
+        effectsManager.setEqualizerEnabled(true)
+        effectsManager.loadCustomPreset(preset)
     }
 }
 

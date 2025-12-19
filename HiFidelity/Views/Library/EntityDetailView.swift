@@ -16,9 +16,12 @@ struct EntityDetailView: View {
     @ObservedObject var playback = PlaybackController.shared
     
     @State private var tracks: [Track] = []
+    @State private var filteredTracks: [Track] = []
+    @State private var sortedTracks: [Track] = []
     @State private var isLoading = false
     @State private var selectedTrack: Track.ID?
     @State private var sortOrder = [KeyPathComparator(\Track.title, order: .forward)]
+    @State private var selectedFilter: TrackFilter?
     
     // Playlist context for remove functionality
     private var playlistContext: TrackContextMenu.PlaylistContext? {
@@ -38,16 +41,26 @@ struct EntityDetailView: View {
             // Entity header
             EntityHeader(
                 entity: entity,
-                trackCount: tracks.count,
+                trackCount: sortedTracks.count,
                 totalDuration: calculateTotalDuration(),
                 onPlay: playAll,
                 onShuffle: shuffleAll
             )
+            .overlay(alignment: .bottomTrailing) {
+                HStack(spacing: 12) {
+                    TrackTableOptionsDropdown(
+                        sortOrder: $sortOrder,
+                        selectedFilter: $selectedFilter
+                    )
+                    .frame(width: 32)
+                }
+                .padding([.bottom, .trailing], 12)
+            }
             
             // Tracks list
             if isLoading {
                 loadingView
-            } else if tracks.isEmpty {
+            } else if sortedTracks.isEmpty {
                 emptyStateView
             } else {
                 tracksList
@@ -57,13 +70,26 @@ struct EntityDetailView: View {
         .task(id: entity.uniqueId) { // Reload tracks when entity changes
             await loadTracks()
         }
+        .onChange(of: sortOrder) { oldValue, newValue in
+            if oldValue != newValue {
+                performBackgroundSort(with: newValue)
+            }
+        }
+        .onChange(of: tracks) { _, newTracks in
+            if !newTracks.isEmpty {
+                applyFilter()
+            }
+        }
+        .onChange(of: selectedFilter) { _, _ in
+            applyFilter()
+        }
     }
     
     // MARK: - Tracks List
     
     private var tracksList: some View {
         TrackTableView(
-            tracks: tracks,
+            tracks: sortedTracks,
             selection: $selectedTrack,
             sortOrder: $sortOrder,
             onPlayTrack: playTrack,
@@ -120,24 +146,24 @@ struct EntityDetailView: View {
     }
     
     private func playTrack(_ track: Track) {
-        guard let trackIndex = tracks.firstIndex(where: { $0.id == track.id }) else {
+        guard let trackIndex = sortedTracks.firstIndex(where: { $0.id == track.id }) else {
             playback.playTracks([track], startingAt: 0)
             return
         }
         
-        playback.playTracks(tracks, startingAt: trackIndex)
+        playback.playTracks(sortedTracks, startingAt: trackIndex)
     }
     
     private func playAll() {
-        playback.playTracks(tracks)
+        playback.playTracks(sortedTracks)
     }
     
     private func shuffleAll() {
-        playback.playTracksShuffled(tracks)
+        playback.playTracksShuffled(sortedTracks)
     }
     
     private func calculateTotalDuration() -> Double {
-        tracks.reduce(0) { $0 + ($1.duration) }
+        sortedTracks.reduce(0) { $0 + ($1.duration) }
     }
     
     // MARK: - Data Loading
@@ -150,6 +176,47 @@ struct EntityDetailView: View {
             tracks = try await entity.loadTracks(from: databaseManager)
         } catch {
             Logger.error("Failed to load tracks for \(entity.displayName): \(error)")
+        }
+    }
+    
+    // MARK: - Filtering
+    
+    private func applyFilter() {
+        if let filter = selectedFilter {
+            switch filter {
+            case .favorites:
+                filteredTracks = tracks.filter { $0.isFavorite }
+            case .recentlyAdded:
+                let thirtyDaysAgo = Calendar.current.date(byAdding: .day, value: -30, to: Date()) ?? Date()
+                filteredTracks = tracks.filter { 
+                    guard let dateAdded = $0.dateAdded else { return false }
+                    return dateAdded >= thirtyDaysAgo
+                }
+            case .unplayed:
+                filteredTracks = tracks.filter { $0.playCount == 0 }
+            }
+        } else {
+            filteredTracks = tracks
+        }
+        
+        // Re-sort after filtering
+        initializeSortedTracks()
+    }
+    
+    // MARK: - Sorting Helpers
+    
+    private func initializeSortedTracks() {
+        // Use current sort order instead of resetting to default
+        sortedTracks = filteredTracks.sorted(using: sortOrder)
+    }
+    
+    private func performBackgroundSort(with newSortOrder: [KeyPathComparator<Track>]) {
+        let tracksToSort = self.filteredTracks
+        Task.detached(priority: .userInitiated) {
+            let sorted = tracksToSort.sorted(using: newSortOrder)
+            await MainActor.run {
+                self.sortedTracks = sorted
+            }
         }
     }
 }
@@ -194,8 +261,8 @@ enum EntityType: Identifiable, Hashable {
     var subtitle: String? {
         switch self {
         case .album(let album): return album.year
-        case .artist(let artist): return "\(artist.trackCount) \(artist.trackCount == 1 ? "track" : "tracks")"
-        case .genre(let genre): return "\(genre.trackCount) \(genre.trackCount == 1 ? "track" : "tracks")"
+        case .artist(_): return nil
+        case .genre(_): return nil
         case .playlist(let playlist):
             if case .smart(let smartType) = playlist.type {
                 return smartType.description

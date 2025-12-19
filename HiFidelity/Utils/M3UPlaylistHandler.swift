@@ -50,6 +50,21 @@ struct M3UPlaylistHandler {
                 fileURL = baseDirectory.appendingPathComponent(trimmedLine)
             }
             
+            // IMPORTANT: Skip macOS metadata files (._*)
+            // These are AppleDouble files created on non-Mac filesystems
+            let filename = fileURL.lastPathComponent
+            if filename.hasPrefix("._") {
+                Logger.debug("M3U Import: Skipping macOS metadata file - \(filename)")
+                continue
+            }
+            
+            // IMPORTANT: Only include supported audio files
+            let fileExtension = fileURL.pathExtension.lowercased()
+            guard AudioFormat.isSupported(fileExtension) else {
+                Logger.debug("M3U Import: Skipping unsupported file type - \(filename)")
+                continue
+            }
+            
             // Check if file exists
             if FileManager.default.fileExists(atPath: fileURL.path) {
                 trackPaths.append(fileURL)

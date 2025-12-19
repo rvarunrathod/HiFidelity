@@ -12,6 +12,9 @@ extension PlaybackController {
     
     /// Check if we should pre-load the next track for gapless playback
     func checkGaplessPreload() {
+        // Don't preload if repeat mode is .one - we'll be repeating current track
+        guard repeatMode != .one else { return }
+        
         guard !isNextTrackPreloaded, nextTrack != nil else { return }
         
         let timeRemaining = duration - currentTime

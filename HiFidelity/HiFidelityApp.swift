@@ -39,6 +39,9 @@ struct HiFidelityApp: App {
             
             // View Menu Commands
             viewMenuCommands()
+            
+            // Playback Control Commands
+            playbackCommands()
         }
         .onChange(of: scenePhase) { oldPhase, newPhase in
             handleScenePhaseChange(newPhase)
@@ -106,8 +109,8 @@ struct HiFidelityApp: App {
     }
     
     private func equalizerWindowContentView() -> some Scene {
-        // Separate window for Equalizer (non-blocking)
-        WindowGroup("Equalizer", id: "audio-effects") {
+        // Separate window for Equalizer (single instance only)
+        Window("Equalizer", id: "audio-effects") {
             EqualizerView()
                 .environmentObject(appTheme)
         }
@@ -181,6 +184,70 @@ struct HiFidelityApp: App {
             Text("Equalizer")
         }
         .keyboardShortcut("e", modifiers: [.command, .option])
+    }
+    
+    // MARK: - Playback Commands
+    
+    @CommandsBuilder
+    private func playbackCommands() -> some Commands {
+        CommandMenu("Playback") {
+            Button(action: {
+                PlaybackController.shared.togglePlayPause()
+            }) {
+                Text(PlaybackController.shared.isPlaying ? "Pause" : "Play")
+            }
+            .keyboardShortcut(.space, modifiers: [])
+            
+            Divider()
+            
+            Button("Next Track") {
+                PlaybackController.shared.next()
+            }
+            .keyboardShortcut(.rightArrow, modifiers: .command)
+            
+            Button("Previous Track") {
+                PlaybackController.shared.previous()
+            }
+            .keyboardShortcut(.leftArrow, modifiers: .command)
+            
+            Divider()
+            
+            Button("Seek Forward") {
+                PlaybackController.shared.seekForward(10.0)
+            }
+            .keyboardShortcut(.rightArrow, modifiers: .shift)
+            
+            Button("Seek Backward") {
+                PlaybackController.shared.seekBackward(10.0)
+            }
+            .keyboardShortcut(.leftArrow, modifiers: .shift)
+            
+            Divider()
+            
+            Button("Volume Up") {
+                let newVolume = min(PlaybackController.shared.volume + 0.05, 1.0)
+                PlaybackController.shared.volume = newVolume
+            }
+            .keyboardShortcut(.upArrow, modifiers: .command)
+            
+            Button("Volume Down") {
+                let newVolume = max(PlaybackController.shared.volume - 0.05, 0.0)
+                PlaybackController.shared.volume = newVolume
+            }
+            .keyboardShortcut(.downArrow, modifiers: .command)
+            
+            Divider()
+            
+            Button("Toggle Shuffle") {
+                PlaybackController.shared.toggleShuffle()
+            }
+            .keyboardShortcut("s", modifiers: .command)
+            
+            Button("Toggle Repeat") {
+                PlaybackController.shared.toggleRepeat()
+            }
+            .keyboardShortcut("r", modifiers: .command)
+        }
     }
 
 }

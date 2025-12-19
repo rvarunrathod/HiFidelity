@@ -40,7 +40,18 @@ class PlaybackController: ObservableObject {
         }
     }
     @Published var isMuted: Bool = false
-    @Published var repeatMode: RepeatMode = .off
+    @Published var repeatMode: RepeatMode = .off {
+        didSet {
+            // Clear preloaded next track if switching to repeat one
+            // since we won't be playing the next track
+            if repeatMode == .one && isNextTrackPreloaded {
+                audioEngine.clearPreloadedTrack()
+                isNextTrackPreloaded = false
+                nextTrack = nil
+                Logger.debug("Cleared preloaded track (repeat one activated)")
+            }
+        }
+    }
     @Published var isShuffleEnabled: Bool = false
     
     // Audio quality info
@@ -107,6 +118,13 @@ class PlaybackController: ObservableObject {
             self,
             selector: #selector(handleStreamEnded),
             name: .bassStreamEnded,
+            object: nil
+        )
+        
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleGaplessTransition),
+            name: .bassGaplessTransition,
             object: nil
         )
         
@@ -229,6 +247,28 @@ class PlaybackController: ObservableObject {
                 } else {
                     self.next()
                 }
+            }
+        }
+    }
+    
+    @objc func handleGaplessTransition() {
+        Logger.info("Gapless transition triggered (repeat mode: \(repeatMode))")
+        
+        // IMPORTANT: Check repeat mode first
+        // If repeat mode is .one, don't do gapless - let the stream end and the 
+        // handleStreamEnded callback will handle the repeat
+        guard repeatMode != .one else {
+            Logger.debug("Repeat one is active - skipping gapless, will repeat current track")
+            return
+        }
+        
+        // This is called 50ms before the track ends by the BASS sync callback
+        // Execute the gapless switch immediately for seamless transition
+        DispatchQueue.main.async {
+            if self.isNextTrackPreloaded && self.nextTrack != nil {
+                self.playPreloadedTrack()
+            } else {
+                Logger.warning("Gapless transition triggered but no preloaded track available")
             }
         }
     }

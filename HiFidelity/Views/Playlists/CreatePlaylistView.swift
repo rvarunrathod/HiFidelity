@@ -98,7 +98,7 @@ struct CreatePlaylistView: View {
                     )
                 }
                 .buttonStyle(.plain)
-                .help("Import playlists from M3U files (up to 10 files)")
+                .help("Import playlists from M3U files (up to 25 files)")
                 
                 Button {
                     importFromFolder()
@@ -118,7 +118,7 @@ struct CreatePlaylistView: View {
                     )
                 }
                 .buttonStyle(.plain)
-                .help("Import playlists from folders (up to 10 folders)")
+                .help("Import playlists from folders (up to 25 folders)")
             }
             
             Button {
@@ -429,7 +429,7 @@ struct CreatePlaylistView: View {
         panel.canChooseDirectories = false
         panel.canChooseFiles = true
         panel.allowedContentTypes = [.init(filenameExtension: "m3u")!, .init(filenameExtension: "m3u8")!]
-        panel.message = "Choose M3U playlist files to import (max 10)"
+        panel.message = "Choose M3U playlist files to import (max 25)"
         
         if panel.runModal() == .OK {
             let urls = panel.urls
@@ -491,7 +491,7 @@ struct CreatePlaylistView: View {
         panel.allowsMultipleSelection = true
         panel.canChooseDirectories = true
         panel.canChooseFiles = false
-        panel.message = "Choose folders to import as playlists (max 10)"
+        panel.message = "Choose folders to import as playlists (max 25)"
         
         if panel.runModal() == .OK {
             let urls = panel.urls

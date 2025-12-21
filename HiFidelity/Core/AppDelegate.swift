@@ -42,21 +42,24 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationWillTerminate(_ notification: Notification) {
         Logger.info("Application will terminate - performing cleanup")
         
-        // Perform synchronous cleanup with timeout to ensure completion
-        let semaphore = DispatchSemaphore(value: 0)
+        // Perform critical cleanup synchronously and quickly
+        // Don't use semaphores or timeouts - let Swift handle async cleanup
         
-        Task {
-            // Stop queue persistence and save final state
+        // 1. Stop audio immediately (most critical for clean shutdown)
+        PlaybackController.shared.stop()
+        
+        // 2. Stop folder monitoring
+        FolderWatcherService.shared.stopWatching()
+        
+        // 3. Save queue state quickly (non-blocking)
+        Task.detached(priority: .high) {
             await QueuePersistenceManager.shared.stop()
-            
-            // Cleanup app coordinator
             await AppCoordinator.shared?.cleanup()
-            
-            semaphore.signal()
         }
         
-        // Wait for cleanup to complete (with 2-second timeout)
-        _ = semaphore.wait(timeout: .now() + 2.0)
+        // 4. Cleanup audio engine (synchronous, fast)
+        // Audio engine is accessed through PlaybackController
+        PlaybackController.shared.audioEngine.cleanup()
         
         Logger.info("Application cleanup complete")
     }

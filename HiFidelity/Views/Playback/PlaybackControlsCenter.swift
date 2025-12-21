@@ -27,15 +27,6 @@ struct PlaybackControlsCenter: View {
     
     private var controlButtons: some View {
         HStack(spacing: 16) {
-            // Equalizer
-            ControlButton(
-                icon: "slider.vertical.3",
-                size: 14,
-                isActive: false,
-                isDisabled: false
-            ) {
-                openWindow(id: "audio-effects")
-            }
             
             // Shuffle
             ControlButton(

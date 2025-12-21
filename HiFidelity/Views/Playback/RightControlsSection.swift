@@ -39,6 +39,9 @@ struct RightControlsSection: View {
                 .frame(height: 24)
 
             HStack(spacing: 2) {
+                // Equalizer
+                EqualizerButton()
+
                 // Sample rate sync button
                 SampleRateSyncButton()
 
@@ -95,6 +98,27 @@ private struct PanelToggleButton: View {
 }
 
 
+// MARK: - Equalizer Button
+
+/// Button to open the audio effects window
+struct EqualizerButton: View {
+    @ObservedObject var theme = AppTheme.shared
+    @Environment(\.openWindow) private var openWindow
+    
+    var body: some View {
+        Button(action: {
+            openWindow(id: "audio-effects")
+        }) {
+            Image(systemName: "slider.vertical.3")
+                .font(.system(size: 16))
+                .foregroundColor(.secondary)
+                .frame(width: 28, height: 28)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(PlainHoverButtonStyle())
+        .help("Audio Effects & Equalizer")
+    }
+}
 
 // MARK: - Sample Rate Sync Button
 

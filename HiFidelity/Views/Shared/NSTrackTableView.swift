@@ -144,6 +144,29 @@ struct NSTrackTableView: NSViewRepresentable {
             self.onPlayTrack = onPlayTrack
             self.isCurrentTrack = isCurrentTrack
             self.playlistContext = playlistContext
+            
+            super.init()
+            
+            // Listen for global focus dismissal
+            NotificationCenter.default.addObserver(
+                self,
+                selector: #selector(dismissFocus),
+                name: .dismissAllFocus,
+                object: nil
+            )
+        }
+        
+        deinit {
+            NotificationCenter.default.removeObserver(self)
+        }
+        
+        @objc private func dismissFocus() {
+            // Make the table view resign first responder to lose focus
+            DispatchQueue.main.async { [weak self] in
+                if let window = self?.tableView?.window {
+                    window.makeFirstResponder(nil)
+                }
+            }
         }
         
         // MARK: - NSTableViewDataSource

@@ -70,6 +70,14 @@ struct ResponsiveMainLayout: View {
                     )
                 }
             }
+            // Add simultaneous gesture to dismiss focus when clicking anywhere
+            // This allows underlying views to still receive their own taps
+            .simultaneousGesture(
+                TapGesture()
+                    .onEnded { _ in
+                        NotificationCenter.default.post(name: .dismissAllFocus, object: nil)
+                    }
+            )
         }
     }
     

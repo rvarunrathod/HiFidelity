@@ -105,6 +105,7 @@ extension Notification.Name {
     static let trackTableSortChanged = Notification.Name("trackTableSortChanged")
     static let trackTableRowSizeChanged = Notification.Name("trackTableRowSizeChanged")
     static let focusSearchField = Notification.Name("FocusSearchField")
+    static let dismissAllFocus = Notification.Name("DismissAllFocus")
     
     // Settings
     static let openSettingsAbout = Notification.Name("OpenSettingsAbout")

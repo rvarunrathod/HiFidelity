@@ -41,6 +41,11 @@ struct BottomPlaybackBar: View {
             .padding(.horizontal, 12)
             .padding(.vertical, 12)
             .background(controlBarBackground)
+            .contentShape(Rectangle()) // Make entire area tappable
+            .onTapGesture {
+                // Dismiss focus from search and tables when clicking on player
+                NotificationCenter.default.post(name: .dismissAllFocus, object: nil)
+            }
         }
         .frame(maxWidth: .infinity, minHeight: 90)
     }

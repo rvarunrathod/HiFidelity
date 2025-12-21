@@ -305,7 +305,7 @@ private struct SettingsButton: View {
 private struct SearchBar: View {
     @Binding var text: String
     @Binding var isActive: Bool
-    @State private var isFocused = false
+    @FocusState private var isFocused: Bool
     
     var body: some View {
         HStack(spacing: 12) {
@@ -317,6 +317,7 @@ private struct SearchBar: View {
             TextField("What do you want to play?", text: $text)
                 .textFieldStyle(.plain)
                 .font(.system(size: 15))
+                .focused($isFocused)
                 .onSubmit {
                     if !text.isEmpty {
                         isActive = true
@@ -327,6 +328,7 @@ private struct SearchBar: View {
                 Button {
                     text = ""
                     isActive = false
+                    isFocused = false
                 } label: {
                     Image(systemName: "xmark.circle.fill")
                         .foregroundColor(.secondary)
@@ -355,6 +357,10 @@ private struct SearchBar: View {
             } else if newValue.count >= 2 {
                 isActive = true
             }
+        }
+        // Listen for global focus dismissal
+        .onReceive(NotificationCenter.default.publisher(for: .dismissAllFocus)) { _ in
+            isFocused = false
         }
     }
 }

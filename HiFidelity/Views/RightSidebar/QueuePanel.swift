@@ -252,25 +252,6 @@ struct QueuePanel: View {
             draggedIndex: $draggedIndex,
             playbackController: playback
         ))
-        .contextMenu {
-            Button("Play Next") {
-                // Move to next in queue
-            }
-            
-            Button("Remove from Queue") {
-                playback.removeFromQueue(at: index)
-            }
-            
-            Divider()
-            
-            Button("Go to Album") {
-                // Navigate to album
-            }
-            
-            Button("Go to Artist") {
-                // Navigate to artist
-            }
-        }
     }
     
     // MARK: - Queue Remove Button

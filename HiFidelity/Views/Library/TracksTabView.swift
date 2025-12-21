@@ -334,7 +334,10 @@ struct TracksTabView: View {
             "duration": .duration,
             "playCount": .playCount,
             "codec": .codec,
-            "dateAdded": .dateAdded
+            "dateAdded": .dateAdded,
+            "filename": .filename,
+            "trackNumber": .trackNumber,
+            "discNumber": .discNumber,
         ]
         
         for (key, field) in sortKeyMap {
@@ -374,6 +377,9 @@ enum TrackSortField: String, Hashable {
     case playCount
     case codec
     case dateAdded
+    case filename
+    case trackNumber
+    case discNumber
     
     var displayName: String {
         switch self {
@@ -386,15 +392,18 @@ enum TrackSortField: String, Hashable {
         case .playCount: return "Play Count"
         case .codec: return "Codec"
         case .dateAdded: return "Date Added"
+        case .filename: return "Filename"
+        case .trackNumber: return "Track Number"
+        case .discNumber: return "Disc Number"
         }
     }
     
     static var regularFields: [TrackSortField] {
-        [.title, .artist, .album, .genre, .year, .duration, .playCount, .codec, .dateAdded]
+        [.title, .artist, .album, .genre, .year, .duration, .playCount, .codec, .dateAdded, .filename, .trackNumber, .discNumber]
     }
     
     static var allFields: [TrackSortField] {
-        [.title, .artist, .album, .genre, .year, .duration, .playCount, .codec, .dateAdded]
+        [.title, .artist, .album, .genre, .year, .duration, .playCount, .codec, .dateAdded, .filename, .trackNumber, .discNumber]
     }
     
     func getComparator(ascending: Bool) -> KeyPathComparator<Track> {
@@ -419,6 +428,12 @@ enum TrackSortField: String, Hashable {
             return KeyPathComparator(\Track.codec, order: order)
         case .dateAdded:
             return KeyPathComparator(\Track.dateAdded, order: order)
+        case .filename:
+            return KeyPathComparator(\Track.filename, order: order)
+        case .trackNumber:
+            return KeyPathComparator(\Track.trackNumber, order: order)
+        case .discNumber:
+            return KeyPathComparator(\Track.discNumber, order: order)
         }
     }
 }
@@ -449,7 +464,10 @@ struct TrackTableOptionsDropdown: View {
             "duration": .duration,
             "playCount": .playCount,
             "codec": .codec,
-            "dateAdded": .dateAdded
+            "dateAdded": .dateAdded,
+            "filename": .filename,
+            "trackNumber": .trackNumber,
+            "discNumber": .discNumber,
         ]
         
         for (key, field) in sortKeyMap {

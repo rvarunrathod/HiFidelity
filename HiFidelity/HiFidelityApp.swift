@@ -34,14 +34,15 @@ struct HiFidelityApp: App {
                 }
         }
         .commands {
+            // Playback Control Commands
+            playbackCommands()
+            
             // App Menu Commands
             appMenuCommands()
             
             // View Menu Commands
             viewMenuCommands()
             
-            // Playback Control Commands
-            playbackCommands()
         }
         .onChange(of: scenePhase) { oldPhase, newPhase in
             handleScenePhaseChange(newPhase)

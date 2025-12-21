@@ -23,12 +23,41 @@ struct EntityDetailView: View {
     @State private var sortOrder = [KeyPathComparator(\Track.title, order: .forward)]
     @State private var selectedFilter: TrackFilter?
     
+    // Sorting persistence - separate storage for each entity type
+    @AppStorage("albumDetailSortField") private var albumSortField: String = "title"
+    @AppStorage("albumDetailSortAscending") private var albumSortAscending: Bool = true
+    @AppStorage("artistDetailSortField") private var artistSortField: String = "title"
+    @AppStorage("artistDetailSortAscending") private var artistSortAscending: Bool = true
+    @AppStorage("genreDetailSortField") private var genreSortField: String = "title"
+    @AppStorage("genreDetailSortAscending") private var genreSortAscending: Bool = true
+    @AppStorage("playlistDetailSortField") private var playlistSortField: String = "title"
+    @AppStorage("playlistDetailSortAscending") private var playlistSortAscending: Bool = true
+    
+    // Helper computed properties for current entity's sort storage
+    private var currentSortField: Binding<String> {
+        switch entity {
+        case .album: return $albumSortField
+        case .artist: return $artistSortField
+        case .genre: return $genreSortField
+        case .playlist: return $playlistSortField
+        }
+    }
+    
+    private var currentSortAscending: Binding<Bool> {
+        switch entity {
+        case .album: return $albumSortAscending
+        case .artist: return $artistSortAscending
+        case .genre: return $genreSortAscending
+        case .playlist: return $playlistSortAscending
+        }
+    }
+    
     // Playlist context for remove functionality
-    private var playlistContext: TrackContextMenu.PlaylistContext? {
+    private var playlistContext: NSTrackTableView.PlaylistContext? {
         guard case .playlist(let playlist) = entity, !playlist.isSmart else {
             return nil
         }
-        return TrackContextMenu.PlaylistContext(
+        return NSTrackTableView.PlaylistContext(
             playlist: playlist,
             onRemove: {
                 Task { await loadTracks() }
@@ -68,10 +97,13 @@ struct EntityDetailView: View {
         }
         .id(entity.uniqueId) // Force view recreation when entity changes
         .task(id: entity.uniqueId) { // Reload tracks when entity changes
+            // Restore saved sort order for this entity type
+            restoreSortOrder()
             await loadTracks()
         }
         .onChange(of: sortOrder) { oldValue, newValue in
             if oldValue != newValue {
+                saveSortOrder(newValue)
                 performBackgroundSort(with: newValue)
             }
         }
@@ -216,6 +248,48 @@ struct EntityDetailView: View {
             let sorted = tracksToSort.sorted(using: newSortOrder)
             await MainActor.run {
                 self.sortedTracks = sorted
+            }
+        }
+    }
+    
+    // MARK: - Sort Order Persistence
+    
+    private func restoreSortOrder() {
+        let field = currentSortField.wrappedValue
+        let isAscending = currentSortAscending.wrappedValue
+        
+        if let sortField = TrackSortField.allFields.first(where: { $0.rawValue == field }) {
+            sortOrder = [sortField.getComparator(ascending: isAscending)]
+        }
+    }
+    
+    private func saveSortOrder(_ sortOrder: [KeyPathComparator<Track>]) {
+        guard let firstSort = sortOrder.first else { return }
+        
+        let sortString = String(describing: firstSort)
+        let isAscending = sortString.contains("forward")
+        
+        // Map comparator to field
+        let sortKeyMap: [String: TrackSortField] = [
+            "title": .title,
+            "artist": .artist,
+            "album": .album,
+            "genre": .genre,
+            "year": .year,
+            "duration": .duration,
+            "playCount": .playCount,
+            "codec": .codec,
+            "dateAdded": .dateAdded,
+            "filename": .filename,
+            "trackNumber": .trackNumber,
+            "discNumber": .discNumber,
+        ]
+        
+        for (key, field) in sortKeyMap {
+            if sortString.contains(key) {
+                currentSortField.wrappedValue = field.rawValue
+                currentSortAscending.wrappedValue = isAscending
+                break
             }
         }
     }

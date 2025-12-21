@@ -116,6 +116,12 @@ struct ModernPlayerLayout: View {
                 selectedEntity = nil
             }
         }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ShowTrackInfo"))) { notification in
+            // Show track info panel when requested from context menu
+            if let track = notification.object as? Track {
+                trackInfoManager.show(track: track)
+            }
+        }
     }
 }
 

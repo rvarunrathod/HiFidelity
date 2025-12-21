@@ -16,14 +16,11 @@ struct TrackContextMenu: View {
     // Optional playlist context - if provided, shows "Remove from Playlist" option
     var playlistContext: PlaylistContext?
     
-    @EnvironmentObject private var trackInfoManager: TrackInfoManager
-    @EnvironmentObject private var appCoordinator: AppCoordinator
-    @ObservedObject var playback = PlaybackController.shared
     @ObservedObject private var cache = DatabaseCache.shared
     
     // Filter to only show user playlists (exclude smart playlists)
     private var userPlaylists: [Playlist] {
-        cache.allPlaylists.filter { !$0.isSmart }
+        TrackContextMenuBuilder.getUserPlaylists()
     }
     
     // MARK: - Playlist Context
@@ -37,15 +34,15 @@ struct TrackContextMenu: View {
         Group {
             // Playback actions
             Button("Play") {
-                playback.playTracks([track], startingAt: 0)
+                TrackContextMenuBuilder.playTrack(track)
             }
             
             Button("Play Next") {
-                playback.playNext(track)
+                TrackContextMenuBuilder.playNext(track)
             }
             
             Button("Add to Queue") {
-                playback.addToQueue(track)
+                TrackContextMenuBuilder.addToQueue(track)
             }
             
             Divider()
@@ -53,7 +50,7 @@ struct TrackContextMenu: View {
             // Playlist actions
             Menu("Add to Playlist") {
                 Button("New Playlist...") {
-                    appCoordinator.showCreatePlaylist(with: track)
+                    TrackContextMenuBuilder.showCreatePlaylist(with: track)
                 }
                 
                 if !userPlaylists.isEmpty {
@@ -61,9 +58,7 @@ struct TrackContextMenu: View {
                     
                     ForEach(userPlaylists) { playlist in
                         Button(playlist.name) {
-                            Task {
-                                await addToPlaylist(playlist)
-                            }
+                            TrackContextMenuBuilder.addToPlaylist(track, playlist: playlist)
                         }
                     }
                 } else {
@@ -77,9 +72,7 @@ struct TrackContextMenu: View {
             // Remove from playlist (only shown in playlist context)
             if let context = playlistContext, !context.playlist.isSmart {
                 Button("Remove from Playlist") {
-                    Task {
-                        await removeFromPlaylist(context)
-                    }
+                    TrackContextMenuBuilder.removeFromPlaylist(track, playlistItem: context.playlist, onRemove: context.onRemove)
                 }
             }
             
@@ -87,97 +80,21 @@ struct TrackContextMenu: View {
             
             // File system actions
             Button("Show in Finder") {
-                NSWorkspace.shared.activateFileViewerSelecting([track.url])
+                TrackContextMenuBuilder.showInFinder(track)
             }
             
             Button("Get Info") {
-                trackInfoManager.show(track: track)
+                TrackContextMenuBuilder.showTrackInfo(track)
             }
             
             Divider()
             
             // Favorite toggle
             Button(track.isFavorite ? "Remove from Favorites" : "Add to Favorites") {
-                Task {
-                    await toggleFavorite()
-                }
+                TrackContextMenuBuilder.toggleFavorite(track)
             }
         }
     }
-    
-    private func addToPlaylist(_ playlist: Playlist) async {
-        guard let playlistId = playlist.id,
-              let trackId = track.trackId else {
-            return
-        }
-        
-        do {
-            try await DatabaseManager.shared.addTrackToPlaylist(trackId: trackId, playlistId: playlistId)
-            Logger.info("Added '\(track.title)' to playlist '\(playlist.name)'")
-            
-            // Show success notification
-            await MainActor.run {
-                NotificationManager.shared.addMessage(.info, "'\(track.title)' was added to '\(playlist.name)'")
-            }
-        } catch DatabaseError.duplicateTrackInPlaylist {
-            Logger.info("Track '\(track.title)' already exists in playlist '\(playlist.name)'")
-            
-            // Show info notification (not an error, just informational)
-            await MainActor.run {
-                NotificationManager.shared.addMessage(.warning, "'\(track.title)' is already in '\(playlist.name)'")
-            }
-        } catch {
-            Logger.error("Failed to add track to playlist: \(error)")
-            
-            // Show error notification
-            await MainActor.run {
-                NotificationManager.shared.addMessage(.error, "Failed to add track to playlist")
-            }
-        }
-    }
-    
-    private func toggleFavorite() async {
-        var updatedTrack = track
-        updatedTrack.isFavorite.toggle()
-        
-        do {
-            try await DatabaseManager.shared.updateTrackFavoriteStatus(updatedTrack)
-            Logger.info("Updated favorite status for: \(track.title)")
-        } catch {
-            Logger.error("Failed to update favorite: \(error)")
-        }
-    }
-    
-    private func removeFromPlaylist(_ context: PlaylistContext) async {
-        guard case .user(let playlist) = context.playlist.type,
-              let playlistId = playlist.id,
-              let trackId = track.trackId else {
-            return
-        }
-        
-        do {
-            try await DatabaseManager.shared.removeTrackFromPlaylist(trackId: trackId, playlistId: playlistId)
-            Logger.info("Removed '\(track.title)' from playlist '\(context.playlist.name)'")
-            
-            // Show success notification
-            await MainActor.run {
-                NotificationManager.shared.addMessage(.info, "'\(track.title)' was removed from '\(context.playlist.name)'")
-            }
-            
-            // Trigger the callback to refresh the view
-            await MainActor.run {
-                context.onRemove()
-            }
-        } catch {
-            Logger.error("Failed to remove track from playlist: \(error)")
-            
-            // Show error notification
-            await MainActor.run {
-                NotificationManager.shared.addMessage(.error, "Failed to remove track from playlist")
-            }
-        }
-    }
-    
 }
 
 // MARK: - Create Playlist With Track View

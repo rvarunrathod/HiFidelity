@@ -122,6 +122,8 @@ class MiniPlayerWindowController: NSWindowController, NSWindowDelegate {
         if let window = window {
             Self.saveWindowPosition(window.frame.origin)
         }
+        // Save closed state
+        UserDefaults.standard.set(false, forKey: "miniPlayerWasOpen")
         MiniPlayerWindowController.shared = nil
     }
     
@@ -158,12 +160,16 @@ class MiniPlayerWindowController: NSWindowController, NSWindowDelegate {
             // Close existing mini player
             controller.close()
             shared = nil
+            // Save closed state
+            UserDefaults.standard.set(false, forKey: "miniPlayerWasOpen")
         } else {
             // Open new mini player
             let controller = MiniPlayerWindowController()
             controller.showWindow(nil)
             // Use orderFront instead of makeKeyAndOrderFront to prevent activating the app
             controller.window?.orderFront(nil)
+            // Save open state
+            UserDefaults.standard.set(true, forKey: "miniPlayerWasOpen")
         }
     }
     
@@ -174,6 +180,8 @@ class MiniPlayerWindowController: NSWindowController, NSWindowDelegate {
             controller.showWindow(nil)
             // Use orderFront instead of makeKeyAndOrderFront to prevent activating the app
             controller.window?.orderFront(nil)
+            // Save open state
+            UserDefaults.standard.set(true, forKey: "miniPlayerWasOpen")
         } else {
             shared?.showWindow(nil)
             shared?.window?.orderFront(nil)
@@ -184,6 +192,8 @@ class MiniPlayerWindowController: NSWindowController, NSWindowDelegate {
     static func hide() {
         shared?.close()
         shared = nil
+        // Save closed state
+        UserDefaults.standard.set(false, forKey: "miniPlayerWasOpen")
     }
     
     deinit {

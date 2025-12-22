@@ -36,6 +36,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             userDriverDelegate: nil
         )
         
+        // Restore miniplayer if it was open when the app closed
+        restoreMiniPlayerState()
+        
         Logger.info("Application did finish launching")
     }
     
@@ -126,6 +129,21 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             }
             if let showAllTabs = viewSubmenu.item(withTitle: "Show All Tabs") {
                 viewSubmenu.removeItem(showAllTabs)
+            }
+        }
+    }
+    
+    // MARK: - Miniplayer State Restoration
+    
+    private func restoreMiniPlayerState() {
+        // Check if miniplayer was open when app was last closed
+        let wasOpen = UserDefaults.standard.bool(forKey: "miniPlayerWasOpen")
+        
+        if wasOpen {
+            // Add a small delay to ensure main window is ready
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                MiniPlayerWindowController.show()
+                Logger.debug("Restored miniplayer state - reopening miniplayer")
             }
         }
     }

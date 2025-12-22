@@ -113,6 +113,7 @@ struct PlaylistSidebarView: View {
         .onReceive(NotificationCenter.default.publisher(for: .playlistsDidChange)) { _ in
             Task {
                 await viewModel.loadPlaylists()
+                viewModel.sortPlaylists(by: sortOption, ascending: sortAscending)
             }
         }
     }

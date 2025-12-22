@@ -538,29 +538,31 @@ struct NSTrackTableView: NSViewRepresentable {
             }
 
             
-            // R128 Scanning submenu
-            let scanR128Item = NSMenuItem(title: "Scan R128 Loudness", action: nil, keyEquivalent: "")
-            let scanSubmenu = NSMenu()
-            
-            let scanTrackItem = NSMenuItem(title: "This Track", action: #selector(scanTrackR128(_:)), keyEquivalent: "")
-            scanTrackItem.target = self
-            scanTrackItem.representedObject = track
-            scanSubmenu.addItem(scanTrackItem)
-            
-            let scanAlbumItem = NSMenuItem(title: "Album '\(track.album)'", action: #selector(scanAlbumR128(_:)), keyEquivalent: "")
-            scanAlbumItem.target = self
-            scanAlbumItem.representedObject = track
-            scanSubmenu.addItem(scanAlbumItem)
-            
-            let scanArtistItem = NSMenuItem(title: "Artist '\(track.artist)'", action: #selector(scanArtistR128(_:)), keyEquivalent: "")
-            scanArtistItem.target = self
-            scanArtistItem.representedObject = track
-            scanSubmenu.addItem(scanArtistItem)
-            
-            scanR128Item.submenu = scanSubmenu
-            menu.addItem(scanR128Item)
-            
-            menu.addItem(NSMenuItem.separator())
+            // R128 Scanning submenu (only if enabled)
+            if ReplayGainSettings.shared.isEnabled {
+                let scanR128Item = NSMenuItem(title: "Scan R128 Loudness", action: nil, keyEquivalent: "")
+                let scanSubmenu = NSMenu()
+                
+                let scanTrackItem = NSMenuItem(title: "This Track", action: #selector(scanTrackR128(_:)), keyEquivalent: "")
+                scanTrackItem.target = self
+                scanTrackItem.representedObject = track
+                scanSubmenu.addItem(scanTrackItem)
+                
+                let scanAlbumItem = NSMenuItem(title: "Album '\(track.album)'", action: #selector(scanAlbumR128(_:)), keyEquivalent: "")
+                scanAlbumItem.target = self
+                scanAlbumItem.representedObject = track
+                scanSubmenu.addItem(scanAlbumItem)
+                
+                let scanArtistItem = NSMenuItem(title: "Artist '\(track.artist)'", action: #selector(scanArtistR128(_:)), keyEquivalent: "")
+                scanArtistItem.target = self
+                scanArtistItem.representedObject = track
+                scanSubmenu.addItem(scanArtistItem)
+                
+                scanR128Item.submenu = scanSubmenu
+                menu.addItem(scanR128Item)
+                
+                menu.addItem(NSMenuItem.separator())
+            }
             
             // Favorite toggle
             let favoriteTitle = track.isFavorite ? "Remove from Favorites" : "Add to Favorites"

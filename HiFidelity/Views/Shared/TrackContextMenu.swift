@@ -17,6 +17,7 @@ struct TrackContextMenu: View {
     var playlistContext: PlaylistContext?
     
     @ObservedObject private var cache = DatabaseCache.shared
+    @ObservedObject private var replayGainSettings = ReplayGainSettings.shared
     
     // Filter to only show user playlists (exclude smart playlists)
     private var userPlaylists: [Playlist] {
@@ -89,22 +90,24 @@ struct TrackContextMenu: View {
             
             Divider()
             
-            // R128 Scanning
-            Menu("Scan R128 Loudness") {
-                Button("This Track") {
-                    TrackContextMenuBuilder.scanTrackR128(track)
+            // R128 Scanning (only if enabled)
+            if ReplayGainSettings.shared.isEnabled {
+                Menu("Scan R128 Loudness") {
+                    Button("This Track") {
+                        TrackContextMenuBuilder.scanTrackR128(track)
+                    }
+                    
+                    Button("Album '\(track.album)'") {
+                        TrackContextMenuBuilder.scanAlbumR128(track)
+                    }
+                    
+                    Button("Artist '\(track.artist)'") {
+                        TrackContextMenuBuilder.scanArtistR128(track)
+                    }
                 }
                 
-                Button("Album '\(track.album)'") {
-                    TrackContextMenuBuilder.scanAlbumR128(track)
-                }
-                
-                Button("Artist '\(track.artist)'") {
-                    TrackContextMenuBuilder.scanArtistR128(track)
-                }
+                Divider()
             }
-            
-            Divider()
             
             // Favorite toggle
             Button(track.isFavorite ? "Remove from Favorites" : "Add to Favorites") {

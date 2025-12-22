@@ -133,9 +133,6 @@ struct AudioSettingsView: View {
                     .frame(width: 220)
                 }
                 
-                Divider()
-                    .padding(.vertical, 8)
-                
                 // R128 Loudness Analysis
                 VStack(alignment: .leading, spacing: 12) {
                     HStack {

@@ -375,6 +375,61 @@ extension DatabaseManager {
         }
     }
     
+    // MARK: - Entity Retrieval Helpers
+    
+    /// Get album ID by title and artist
+    /// - Parameters:
+    ///   - title: Album title
+    ///   - artist: Artist name
+    /// - Returns: Album ID if found, nil otherwise
+    func getAlbumId(title: String, artist: String) async throws -> Int64? {
+        let normalizedTitle = title.normalized
+        
+        return try await dbQueue.read { db in
+            try Album
+                .filter(Album.Columns.normalizedName == normalizedTitle)
+                .fetchOne(db)?.id
+        }
+    }
+    
+    /// Get artist ID by name
+    /// - Parameter name: Artist name
+    /// - Returns: Artist ID if found, nil otherwise
+    func getArtistId(name: String) async throws -> Int64? {
+        let normalizedName = name.normalized
+        
+        return try await dbQueue.read { db in
+            try Artist
+                .filter(Artist.Columns.normalizedName == normalizedName)
+                .fetchOne(db)?.id
+        }
+    }
+    
+    /// Get album by ID
+    /// - Parameter albumId: Album ID
+    /// - Returns: Album object
+    func getAlbum(albumId: Int64) async throws -> Album {
+        return try await dbQueue.read { db in
+            guard let album = try Album.fetchOne(db, key: albumId) else {
+                throw DatabaseError.recordNotFound(table: "albums", id: albumId)
+            }
+            return album
+        }
+    }
+    
+    /// Get artist by ID
+    /// - Parameter artistId: Artist ID
+    /// - Returns: Artist object
+    func getArtist(artistId: Int64) async throws -> Artist {
+        return try await dbQueue.read { db in
+            guard let artist = try Artist.fetchOne(db, key: artistId) else {
+                throw DatabaseError.recordNotFound(table: "artists", id: artistId)
+            }
+            return artist
+        }
+    }
+
+    
     // MARK: - Playlist Operations
     
     /// Get all playlists, sorted by name

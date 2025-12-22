@@ -96,6 +96,8 @@ extension Notification.Name {
     // Navigation
     static let goToLibraryFilter = Notification.Name("GoToLibraryFilter")
     static let goToHome = Notification.Name("GoToHome")
+    static let navigateToEntity = Notification.Name("NavigateToEntity")
+
     
     // Playback
     static let playEntityTracks = Notification.Name("playEntityTracks")

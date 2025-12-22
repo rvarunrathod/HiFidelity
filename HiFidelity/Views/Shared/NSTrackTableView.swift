@@ -513,6 +513,31 @@ struct NSTrackTableView: NSViewRepresentable {
             
             menu.addItem(NSMenuItem.separator())
             
+            // Navigation actions (only show if not unknown)
+            var hasNavigationItems = false
+            
+            if !track.album.isEmpty && track.album != "Unknown Album" {
+                let goToAlbumItem = NSMenuItem(title: "Go to Album '\(track.album)'", action: #selector(goToAlbum(_:)), keyEquivalent: "")
+                goToAlbumItem.target = self
+                goToAlbumItem.representedObject = track
+                menu.addItem(goToAlbumItem)
+                hasNavigationItems = true
+            }
+            
+            if !track.artist.isEmpty && track.artist != "Unknown Artist" {
+                let goToArtistItem = NSMenuItem(title: "Go to Artist '\(track.artist)'", action: #selector(goToArtist(_:)), keyEquivalent: "")
+                goToArtistItem.target = self
+                goToArtistItem.representedObject = track
+                menu.addItem(goToArtistItem)
+                hasNavigationItems = true
+            }
+
+            
+            if hasNavigationItems {
+                menu.addItem(NSMenuItem.separator())
+            }
+
+            
             // R128 Scanning submenu
             let scanR128Item = NSMenuItem(title: "Scan R128 Loudness", action: nil, keyEquivalent: "")
             let scanSubmenu = NSMenu()
@@ -630,6 +655,17 @@ struct NSTrackTableView: NSViewRepresentable {
             guard let track = sender.representedObject as? Track else { return }
             TrackContextMenuBuilder.scanArtistR128(track)
         }
+        
+        @objc func goToAlbum(_ sender: NSMenuItem) {
+            guard let track = sender.representedObject as? Track else { return }
+            TrackContextMenuBuilder.navigateToAlbum(track)
+        }
+        
+        @objc func goToArtist(_ sender: NSMenuItem) {
+            guard let track = sender.representedObject as? Track else { return }
+            TrackContextMenuBuilder.navigateToArtist(track)
+        }
+
         
         func createHeaderMenu() -> NSMenu {
             let menu = NSMenu()

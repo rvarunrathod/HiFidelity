@@ -139,6 +139,28 @@ struct QueuePanel: View {
         .padding(.horizontal, 20)
         .padding(.vertical, 8)
         .background(Color(nsColor: .controlBackgroundColor).opacity(0.3))
+        .contextMenu {
+            if !track.album.isEmpty && track.album != "Unknown Album" {
+                Button("Go to Album '\(track.album)'") {
+                    TrackContextMenuBuilder.navigateToAlbum(track)
+                }
+            }
+            
+            if !track.artist.isEmpty && track.artist != "Unknown Artist" {
+                Button("Go to Artist '\(track.artist)'") {
+                    TrackContextMenuBuilder.navigateToArtist(track)
+                }
+            }
+            
+            if (!track.album.isEmpty && track.album != "Unknown Album") || (!track.artist.isEmpty && track.artist != "Unknown Artist") {
+                Divider()
+            }
+            
+            Button("Get Info") {
+                TrackContextMenuBuilder.showTrackInfo(track)
+            }
+        }
+
     }
     
     // MARK: - Queue List
@@ -230,6 +252,34 @@ struct QueuePanel: View {
         .onTapGesture(count: 2) {
             playback.play(track: track)
         }
+        .contextMenu {
+            Button("Play Now") {
+                playback.play(track: track)
+            }
+            
+            if (!track.album.isEmpty && track.album != "Unknown Album") || (!track.artist.isEmpty && track.artist != "Unknown Artist") {
+                Divider()
+            }
+            
+            if !track.album.isEmpty && track.album != "Unknown Album" {
+                Button("Go to Album '\(track.album)'") {
+                    TrackContextMenuBuilder.navigateToAlbum(track)
+                }
+            }
+            
+            if !track.artist.isEmpty && track.artist != "Unknown Artist" {
+                Button("Go to Artist '\(track.artist)'") {
+                    TrackContextMenuBuilder.navigateToArtist(track)
+                }
+            }
+            
+            Divider()
+            
+            Button("Remove from Queue", role: .destructive) {
+                playback.removeFromQueue(at: index)
+            }
+        }
+
         .onDrag({
             self.draggedIndex = index
             let itemProvider = NSItemProvider(object: String(index) as NSString)

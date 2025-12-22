@@ -122,6 +122,16 @@ struct ModernPlayerLayout: View {
                 trackInfoManager.show(track: track)
             }
         }
+        .onReceive(NotificationCenter.default.publisher(for: .navigateToEntity)) { notification in
+            // Navigate to entity (album or artist) when requested from context menu
+            if let entity = notification.object as? EntityType {
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                    selectedTab = .home  // Switch to home tab
+                    selectedEntity = entity  // Set the selected entity
+                }
+            }
+        }
+
     }
 }
 

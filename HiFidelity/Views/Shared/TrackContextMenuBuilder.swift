@@ -126,4 +126,62 @@ class TrackContextMenuBuilder {
         R128LoudnessScanner.shared.scanArtist(artist: track.artist)
         NotificationManager.shared.addMessage(.info, "Scanning tracks by '\(track.artist)' for R128 loudness...")
     }
+    
+    // MARK: - Navigation Actions
+    
+    static func navigateToAlbum(_ track: Track) {
+        Task {
+            do {
+                // Fetch the album from the database
+                if let albumId = try await DatabaseManager.shared.getAlbumId(title: track.album, artist: track.artist) {
+                    let album = try await DatabaseManager.shared.getAlbum(albumId: albumId)
+                    
+                    await MainActor.run {
+                        // Navigate to the album
+                        NotificationCenter.default.post(
+                            name: .navigateToEntity,
+                            object: EntityType.album(album)
+                        )
+                    }
+                } else {
+                    await MainActor.run {
+                        NotificationManager.shared.addMessage(.warning, "Album '\(track.album)' not found")
+                    }
+                }
+            } catch {
+                Logger.error("Failed to navigate to album: \(error)")
+                await MainActor.run {
+                    NotificationManager.shared.addMessage(.error, "Failed to navigate to album")
+                }
+            }
+        }
+    }
+    
+    static func navigateToArtist(_ track: Track) {
+        Task {
+            do {
+                // Fetch the artist from the database
+                if let artistId = try await DatabaseManager.shared.getArtistId(name: track.artist) {
+                    let artist = try await DatabaseManager.shared.getArtist(artistId: artistId)
+                    
+                    await MainActor.run {
+                        // Navigate to the artist
+                        NotificationCenter.default.post(
+                            name: .navigateToEntity,
+                            object: EntityType.artist(artist)
+                        )
+                    }
+                } else {
+                    await MainActor.run {
+                        NotificationManager.shared.addMessage(.warning, "Artist '\(track.artist)' not found")
+                    }
+                }
+            } catch {
+                Logger.error("Failed to navigate to artist: \(error)")
+                await MainActor.run {
+                    NotificationManager.shared.addMessage(.error, "Failed to navigate to artist")
+                }
+            }
+        }
+    }
 }

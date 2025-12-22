@@ -5,6 +5,38 @@
         <description>Updates for HiFidelity - High-Fidelity Music Player</description>
         <language>en</language>
         <item>
+            <title>Version 1.0.8</title>
+            <pubDate>Mon, 22 Dec 2025 15:42:14 +0530</pubDate>
+            <sparkle:version>108</sparkle:version>
+            <sparkle:shortVersionString>1.0.8</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <enclosure
+                url="https://github.com/rvarunrathod/HiFidelity/releases/download/v1.0.8/HiFidelity-1.0.8-Universal.dmg"
+                sparkle:edSignature="JyXo2+APbzYWaAAMKCLqqclMgRbgRFabBRvke2XcnR4c+EAA0Pg5sBHxl5GyE5DCAQPksGuCQpeb3slM5GKkBw=="
+                length="14177141"
+                type="application/octet-stream"
+            />
+            <description><![CDATA[
+                <h2>Improvement</h2>
+<ul>
+    <li>Added track number, disc number columns in list view</li>
+    <li>In album/artist/genre view sorting preference will save</li>
+    <li>Added replay gain support: R128 loudness and from tags  (turn on replayGain from audio settings) (to scan for R128 loudness, right click on track -> scan for track/album/artists -> press refresh button to load calculated value</li>
+    <li>Persist and restore miniplayer visibility across app launches</li>
+    <li>Allow multiple delete in playlist</li>
+    <li>Added go to Album/Artist functionality when right click on track</li>
+</ul>
+<h2>Fixes</h2>
+<ul>
+    <li>App exit quickly</li>
+    <li>Playlist honor sorting when importing or deleting</li>
+    <li>Moved equalizer button to volume control section</li>
+    <li>Space bar button works for playback</li>
+</ul>
+<p><a href="https://github.com/rvarunrathod/HiFidelity/compare/v1.0.7...v1.0.8">Full Changelog</a></p>
+            ]]></description>
+        </item>
+        <item>
             <title>Version 1.0.7</title>
             <pubDate>Fri, 19 Dec 2025 15:13:32 +0530</pubDate>
             <sparkle:version>107</sparkle:version>

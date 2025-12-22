@@ -21,6 +21,8 @@ struct PlaylistSidebarView: View {
     @AppStorage("playlistSortOption") private var sortOptionId: String = "name"
     @AppStorage("playlistSortAscending") private var sortAscending = true
     @State private var sortOption: PlaylistSortOption = .name
+    @State private var isSelectionMode = false
+    @State private var selectedPlaylistIds: Set<String> = []
     
     var body: some View {
         VStack(spacing: 0) {
@@ -122,17 +124,52 @@ struct PlaylistSidebarView: View {
     
     private var playlistsHeader: some View {
         HStack(spacing: 12) {
-            Image(systemName: "music.note.list")
-                .font(.system(size: 22))
-                .foregroundColor(.secondary)
-            
-            Text("Playlists")
-                .font(AppFonts.sidebarHeader)
-            
-            Spacer()
-            
-            // Create button
-            CreatePlaylistButton(action: { showCreatePlaylist = true })
+            if isSelectionMode {
+                // Selection mode UI
+                Button {
+                    isSelectionMode = false
+                    selectedPlaylistIds.removeAll()
+                } label: {
+                    Text("Cancel")
+                        .font(AppFonts.labelMedium)
+                        .foregroundColor(theme.currentTheme.primaryColor)
+                }
+                .buttonStyle(.plain)
+                
+                Spacer()
+                
+                Text("\(selectedPlaylistIds.count) selected")
+                    .font(AppFonts.labelMedium)
+                    .foregroundColor(.secondary)
+                
+                Button {
+                    deleteSelectedPlaylists()
+                } label: {
+                    Image(systemName: "trash")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundColor(.red)
+                }
+                .buttonStyle(.plain)
+                .disabled(selectedPlaylistIds.isEmpty)
+            } else {
+                // Normal mode UI
+                Image(systemName: "music.note.list")
+                    .font(.system(size: 22))
+                    .foregroundColor(.secondary)
+                
+                Text("Playlists")
+                    .font(AppFonts.sidebarHeader)
+                
+                Spacer()
+                
+                // Selection mode toggle button
+                SelectionModeButton(action: { 
+                    isSelectionMode = true 
+                })
+                
+                // Create button
+                CreatePlaylistButton(action: { showCreatePlaylist = true })
+            }
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
@@ -213,6 +250,33 @@ struct PlaylistSidebarView: View {
         }
     }
     
+    private struct SelectionModeButton: View {
+        let action: () -> Void
+        @State private var isHovered = false
+        @ObservedObject var theme = AppTheme.shared
+        
+        var body: some View {
+            Button(action: action) {
+                Image(systemName: "checkmark.circle")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(isHovered ? theme.currentTheme.primaryColor : .secondary)
+                    .frame(width: 32, height: 32)
+                    .background(
+                        Circle()
+                            .fill(isHovered ? theme.currentTheme.primaryColor.opacity(0.12) : Color.clear)
+                    )
+                    .scaleEffect(isHovered ? 1.08 : 1.0)
+                    .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isHovered)
+            }
+            .buttonStyle(.plain)
+            .contentShape(Rectangle())
+            .onHover { hovering in
+                isHovered = hovering
+            }
+            .help("Select Playlists")
+        }
+    }
+    
     // MARK: - Search Bar
     
     private var searchBar: some View {
@@ -271,7 +335,17 @@ struct PlaylistSidebarView: View {
     // MARK: - Playlist Row
     
     private func playlistRow(_ playlist: PlaylistItem) -> some View {
-        HStack(spacing: 12) {
+        let isSelected = selectedPlaylistIds.contains(playlist.id)
+        let canBeDeleted = if case .user = playlist.type { true } else { false }
+        
+        return HStack(spacing: 12) {
+            // Selection checkbox (only for user playlists in selection mode)
+            if isSelectionMode && canBeDeleted {
+                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                    .font(.system(size: 20))
+                    .foregroundColor(isSelected ? theme.currentTheme.primaryColor : .secondary)
+            }
+            
             // Artwork
             artworkView(for: playlist)
             
@@ -312,14 +386,28 @@ struct PlaylistSidebarView: View {
         )
         .contentShape(Rectangle())
         .onTapGesture {
-            withAnimation(.easeInOut(duration: 0.2)) {
-                selectedEntity = .playlist(playlist)
+            if isSelectionMode && canBeDeleted {
+                // Toggle selection
+                if isSelected {
+                    selectedPlaylistIds.remove(playlist.id)
+                } else {
+                    selectedPlaylistIds.insert(playlist.id)
+                }
+            } else if !isSelectionMode {
+                // Normal navigation
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    selectedEntity = .playlist(playlist)
+                }
             }
         }
-        .contextMenu {
-            playlistContextMenu(playlist)
+        .if(!isSelectionMode) { view in
+            view.contextMenu {
+                playlistContextMenu(playlist)
+            }
         }
     }
+
+
     
     // MARK: - Artwork View
     
@@ -385,6 +473,15 @@ struct PlaylistSidebarView: View {
             
             Divider()
             
+            Button {
+                isSelectionMode = true
+                selectedPlaylistIds.insert(playlist.id)
+            } label: {
+                Label("Select Multiple", systemImage: "checkmark.circle")
+            }
+            
+            Divider()
+            
             Button(role: .destructive) {
                 Task {
                     try await databaseManager.deletePlaylist(playlist)
@@ -392,6 +489,26 @@ struct PlaylistSidebarView: View {
             } label: {
                 Label("Delete Playlist", systemImage: "trash")
             }
+        }
+    }
+
+    
+    private func deleteSelectedPlaylists() {
+        Task {
+            for playlistId in selectedPlaylistIds {
+                // Find the playlist in the viewModel
+                if let playlist = viewModel.allPlaylists.first(where: { $0.id == playlistId }),
+                   case .user = playlist.type {
+                    do {
+                        try await databaseManager.deletePlaylist(playlist)
+                    } catch {
+                        Logger.error("Failed to delete playlist \(playlist.name): \(error)")
+                    }
+                }
+            }
+            // Exit selection mode and clear selections
+            isSelectionMode = false
+            selectedPlaylistIds.removeAll()
         }
     }
     
@@ -546,6 +663,20 @@ final class PlaylistSidebarViewModel: ObservableObject {
     }
 }
 
+
+// MARK: - View Extension
+
+extension View {
+    @ViewBuilder
+    func `if`<Content: View>(_ condition: Bool, transform: (Self) -> Content) -> some View {
+        if condition {
+            transform(self)
+        } else {
+            self
+        }
+    }
+}
+
 // MARK: - Preview
 
 #Preview {
@@ -565,4 +696,5 @@ final class PlaylistSidebarViewModel: ObservableObject {
     
     return PreviewWrapper()
 }
+
 

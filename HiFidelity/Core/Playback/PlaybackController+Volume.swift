@@ -17,8 +17,9 @@ extension PlaybackController {
     
     func toggleMute() {
         isMuted.toggle()
-        // Apply muted or normal volume
-        audioEngine.setVolume(Float(isMuted ? 0 : volume))
+        // Apply muted or normal volume with replay gain
+        let effectiveVolume = Float(isMuted ? 0 : volume) * currentReplayGainMultiplier
+        audioEngine.setVolume(effectiveVolume)
     }
 }
 

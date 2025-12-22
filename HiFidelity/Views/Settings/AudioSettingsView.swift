@@ -10,6 +10,8 @@ import SwiftUI
 struct AudioSettingsView: View {
     @ObservedObject var settings = AudioSettings.shared
     @ObservedObject var effectsManager = AudioEffectsManager.shared
+    @ObservedObject var replayGainSettings = ReplayGainSettings.shared
+    @ObservedObject var r128Scanner = R128LoudnessScanner.shared
     
     var body: some View {
         VStack(alignment: .leading, spacing: 24) {
@@ -28,6 +30,13 @@ struct AudioSettingsView: View {
             
             Divider()
             
+            // ReplayGain
+            settingsSection(title: "ReplayGain", icon: "waveform.path.ecg") {
+                replayGainSettingsView
+            }
+            
+            Divider()
+            
             // Audio Quality
             settingsSection(title: "Audio Quality", icon: "waveform") {
                 qualitySettings
@@ -35,13 +44,12 @@ struct AudioSettingsView: View {
             
             Divider()
             
-            
-            
             // Reset Button
             HStack {
                 Spacer()
                 Button("Reset to Defaults") {
                     settings.resetToDefaults()
+                    replayGainSettings.resetToDefaults()
                 }
                 .buttonStyle(.bordered)
             }
@@ -82,6 +90,99 @@ struct AudioSettingsView: View {
                             .frame(width: 60, alignment: .trailing)
                         .foregroundColor(.secondary)
                             .monospacedDigit()
+                    }
+                }
+            }
+        }
+    }
+    
+    private var replayGainSettingsView: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            // ReplayGain Toggle
+            settingRow(
+                label: "Enable ReplayGain",
+                description: "Automatically normalize volume across tracks"
+            ) {
+                Toggle("", isOn: $replayGainSettings.isEnabled)
+                    .toggleStyle(.switch)
+            }
+            
+            // Mode & Source Pickers
+            if replayGainSettings.isEnabled {
+                settingRow(
+                    label: "Mode",
+                    description: replayGainSettings.mode.description
+                ) {
+                    Picker("", selection: $replayGainSettings.mode) {
+                        ForEach(ReplayGainMode.allCases, id: \.self) { mode in
+                            Text(mode.displayName).tag(mode)
+                        }
+                    }
+                    .frame(width: 150)
+                }
+                
+                settingRow(
+                    label: "Source",
+                    description: replayGainSettings.source.description
+                ) {
+                    Picker("", selection: $replayGainSettings.source) {
+                        ForEach(LoudnessSource.allCases, id: \.self) { source in
+                            Text(source.displayName).tag(source)
+                        }
+                    }
+                    .frame(width: 220)
+                }
+                
+                Divider()
+                    .padding(.vertical, 8)
+                
+                // R128 Loudness Analysis
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Loudness Analysis")
+                                .font(.system(size: 13, weight: .medium))
+                            Text("Scan your library to calculate EBU R128 loudness for accurate normalization")
+                                .font(.system(size: 11))
+                                .foregroundColor(.secondary)
+                        }
+                        
+                        Spacer()
+                        
+                        if r128Scanner.isScanning {
+                            Button("Cancel") {
+                                r128Scanner.cancelScan()
+                            }
+                            .buttonStyle(.bordered)
+                        } else {
+                            Button("Scan Library") {
+                                r128Scanner.scanLibrary()
+                            }
+                            .buttonStyle(.borderedProminent)
+                        }
+                    }
+                    
+                    // Progress indicator
+                    if r128Scanner.isScanning {
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack {
+                                ProgressView(value: r128Scanner.progress)
+                                    .frame(maxWidth: .infinity)
+                                
+                                Text("\(r128Scanner.scannedCount)/\(r128Scanner.totalCount)")
+                                    .font(.system(size: 11))
+                                    .foregroundColor(.secondary)
+                                    .monospacedDigit()
+                            }
+                            
+                            if let currentTrack = r128Scanner.currentTrack {
+                                Text("Analyzing: \(currentTrack.title)")
+                                    .font(.system(size: 10))
+                                    .foregroundColor(.secondary)
+                                    .lineLimit(1)
+                            }
+                        }
+                        .padding(.vertical, 4)
                     }
                 }
             }

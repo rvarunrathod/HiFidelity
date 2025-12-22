@@ -17,6 +17,7 @@ class PlaybackController: ObservableObject {
     
     @Published var currentTrack: Track? {
         didSet {
+            applyReplayGain()
             updateNowPlayingInfo()
         }
     }
@@ -35,8 +36,9 @@ class PlaybackController: ObservableObject {
         didSet {
             // Sync volume to centralized AudioSettings
             AudioSettings.shared.playbackVolume = volume
-            // Apply to audio engine
-            audioEngine.setVolume(Float(volume))
+            // Apply to audio engine with replay gain
+            let effectiveVolume = Float(volume) * currentReplayGainMultiplier
+            audioEngine.setVolume(effectiveVolume)
         }
     }
     @Published var isMuted: Bool = false
@@ -96,6 +98,10 @@ class PlaybackController: ObservableObject {
     // Recommendation Engine
     let recommendationEngine = RecommendationEngine.shared
     
+    // Replay Gain
+    let replayGainSettings = ReplayGainSettings.shared
+    var currentReplayGainMultiplier: Float = 1.0
+    
     // MARK: - Initialization
     
     private init() {
@@ -148,6 +154,13 @@ class PlaybackController: ObservableObject {
             name: .audioDeviceChangeComplete,
             object: nil
         )
+        
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleReplayGainSettingsChanged),
+            name: NSNotification.Name("ReplayGainSettingsChanged"),
+            object: nil
+        )
     }
     
     @objc private func handleDeviceChanged(_ notification: Notification) {
@@ -184,7 +197,9 @@ class PlaybackController: ObservableObject {
             }
             
             duration = audioEngine.getDuration()
-            audioEngine.setVolume(Float(isMuted ? 0 : volume))
+            
+            // Apply replay gain and set volume
+            applyReplayGain()
             
             // Restore position
             if savedPosition > 0 && savedPosition < duration {
@@ -228,6 +243,31 @@ class PlaybackController: ObservableObject {
         // DACManager will auto-switch to default device and post audioDeviceChanged
         // Since stream is cleared, handleDeviceChangeComplete will reload the track
     }
+    
+    @objc private func handleReplayGainSettingsChanged() {
+        Logger.info("ReplayGain settings changed - recalculating gain")
+        
+        // Recalculate and apply replay gain for current track
+        applyReplayGain()
+    }
+    
+    /// Calculate and apply replay gain for the current track
+    func applyReplayGain() {
+        guard let track = currentTrack else {
+            currentReplayGainMultiplier = 1.0
+            return
+        }
+        
+        // Calculate replay gain multiplier
+        currentReplayGainMultiplier = replayGainSettings.calculateGainMultiplier(for: track)
+        
+        // Apply the combined volume (user volume × replay gain)
+        let effectiveVolume = Float(isMuted ? 0 : volume) * currentReplayGainMultiplier
+        audioEngine.setVolume(effectiveVolume)
+        
+        Logger.debug("Applied replay gain: user=\(volume), gain=×\(currentReplayGainMultiplier), effective=\(effectiveVolume)")
+    }
+
     
     @objc func handleStreamEnded() {
         Logger.info("Stream ended")

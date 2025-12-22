@@ -80,8 +80,12 @@ struct Track: Identifiable, Equatable, Hashable, FetchableRecord, MutablePersist
     var artworkData: Data?
     private static var artworkCache = NSCache<NSString, NSData>()
     
+    
     // Extended metadata stored as JSON
     var extendedMetadata: ExtendedMetadata?
+    
+    // R128 Loudness Analysis (for volume normalization)
+    var r128IntegratedLoudness: Double? // in LUFS
     
     var filename: String {
         url.lastPathComponent
@@ -154,6 +158,7 @@ struct Track: Identifiable, Equatable, Hashable, FetchableRecord, MutablePersist
         static let albumId = Column("album_id")
         static let artistId = Column("artist_id")
         static let genreId = Column("genre_id")
+        static let r128IntegratedLoudness = Column("r128_integrated_loudness")
     }
     
     static let columnMap: [String: Column] = [
@@ -242,6 +247,9 @@ struct Track: Identifiable, Equatable, Hashable, FetchableRecord, MutablePersist
         albumId = row[Columns.albumId]
         artistId = row[Columns.artistId]
         genreId = row[Columns.genreId]
+        
+        // R128 Loudness
+        r128IntegratedLoudness = row[Columns.r128IntegratedLoudness]
     }
     
     // MARK: - PersistableRecord
@@ -317,6 +325,9 @@ struct Track: Identifiable, Equatable, Hashable, FetchableRecord, MutablePersist
         container[Columns.albumId] = albumId
         container[Columns.artistId] = artistId
         container[Columns.genreId] = genreId
+        
+        // R128 Loudness
+        container[Columns.r128IntegratedLoudness] = r128IntegratedLoudness
     }
     
     // Auto-incrementing id
@@ -463,7 +474,8 @@ extension Track {
             Columns.fileSize,
             Columns.codec,
             Columns.albumId,
-            Columns.artistId
+            Columns.artistId,
+            Columns.r128IntegratedLoudness
         ]
     }
     

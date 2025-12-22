@@ -63,7 +63,18 @@ struct DatabaseMigrator {
             try DatabaseManager.upgradeFTSTables(in: db)
         }
         
-        // Add new migrations here as: migrator.registerMigration("v6_description") { db in ... }
+        // v6: Add R128 loudness analysis columns
+        migrator.registerMigration("v6_r128_loudness") { db in
+            Logger.info("Adding R128 integrated loudness column...")
+            try db.addColumnIfNotExists(
+                table: "tracks",
+                column: "r128_integrated_loudness",
+                type: .real
+            )
+            Logger.info("R128 loudness column added successfully")
+        }
+        
+        // Add new migrations here as: migrator.registerMigration("v7_description") { db in ... }
         
         return migrator
     }

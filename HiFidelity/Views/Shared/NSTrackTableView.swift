@@ -513,6 +513,30 @@ struct NSTrackTableView: NSViewRepresentable {
             
             menu.addItem(NSMenuItem.separator())
             
+            // R128 Scanning submenu
+            let scanR128Item = NSMenuItem(title: "Scan R128 Loudness", action: nil, keyEquivalent: "")
+            let scanSubmenu = NSMenu()
+            
+            let scanTrackItem = NSMenuItem(title: "This Track", action: #selector(scanTrackR128(_:)), keyEquivalent: "")
+            scanTrackItem.target = self
+            scanTrackItem.representedObject = track
+            scanSubmenu.addItem(scanTrackItem)
+            
+            let scanAlbumItem = NSMenuItem(title: "Album '\(track.album)'", action: #selector(scanAlbumR128(_:)), keyEquivalent: "")
+            scanAlbumItem.target = self
+            scanAlbumItem.representedObject = track
+            scanSubmenu.addItem(scanAlbumItem)
+            
+            let scanArtistItem = NSMenuItem(title: "Artist '\(track.artist)'", action: #selector(scanArtistR128(_:)), keyEquivalent: "")
+            scanArtistItem.target = self
+            scanArtistItem.representedObject = track
+            scanSubmenu.addItem(scanArtistItem)
+            
+            scanR128Item.submenu = scanSubmenu
+            menu.addItem(scanR128Item)
+            
+            menu.addItem(NSMenuItem.separator())
+            
             // Favorite toggle
             let favoriteTitle = track.isFavorite ? "Remove from Favorites" : "Add to Favorites"
             let favoriteItem = NSMenuItem(title: favoriteTitle, action: #selector(toggleFavorite(_:)), keyEquivalent: "")
@@ -590,6 +614,21 @@ struct NSTrackTableView: NSViewRepresentable {
         @objc func toggleFavorite(_ sender: NSMenuItem) {
             guard let track = sender.representedObject as? Track else { return }
             TrackContextMenuBuilder.toggleFavorite(track)
+        }
+        
+        @objc func scanTrackR128(_ sender: NSMenuItem) {
+            guard let track = sender.representedObject as? Track else { return }
+            TrackContextMenuBuilder.scanTrackR128(track)
+        }
+        
+        @objc func scanAlbumR128(_ sender: NSMenuItem) {
+            guard let track = sender.representedObject as? Track else { return }
+            TrackContextMenuBuilder.scanAlbumR128(track)
+        }
+        
+        @objc func scanArtistR128(_ sender: NSMenuItem) {
+            guard let track = sender.representedObject as? Track else { return }
+            TrackContextMenuBuilder.scanArtistR128(track)
         }
         
         func createHeaderMenu() -> NSMenu {

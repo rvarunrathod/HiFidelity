@@ -21,7 +21,9 @@ extension PlaybackController {
                 return
             }
             duration = audioEngine.getDuration()
-            audioEngine.setVolume(Float(isMuted ? 0 : volume))
+            
+            // Apply replay gain and set volume
+            applyReplayGain()
             
             // Update stream info immediately
             currentStreamInfo = audioEngine.getStreamInfo()
@@ -34,7 +36,9 @@ extension PlaybackController {
             }
             
             duration = audioEngine.getDuration()
-            audioEngine.setVolume(Float(isMuted ? 0 : volume))
+            
+            // Apply replay gain and set volume
+            applyReplayGain()
             
             // Update stream info immediately
             currentStreamInfo = audioEngine.getStreamInfo()
@@ -109,7 +113,9 @@ extension PlaybackController {
             }
             
             duration = audioEngine.getDuration()
-            audioEngine.setVolume(Float(isMuted ? 0 : volume))
+            
+            // Apply replay gain and set volume
+            applyReplayGain()
             
             // Try seeking again
             guard audioEngine.seek(to: time) else {

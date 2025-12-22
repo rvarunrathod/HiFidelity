@@ -89,6 +89,23 @@ struct TrackContextMenu: View {
             
             Divider()
             
+            // R128 Scanning
+            Menu("Scan R128 Loudness") {
+                Button("This Track") {
+                    TrackContextMenuBuilder.scanTrackR128(track)
+                }
+                
+                Button("Album '\(track.album)'") {
+                    TrackContextMenuBuilder.scanAlbumR128(track)
+                }
+                
+                Button("Artist '\(track.artist)'") {
+                    TrackContextMenuBuilder.scanArtistR128(track)
+                }
+            }
+            
+            Divider()
+            
             // Favorite toggle
             Button(track.isFavorite ? "Remove from Favorites" : "Add to Favorites") {
                 TrackContextMenuBuilder.toggleFavorite(track)

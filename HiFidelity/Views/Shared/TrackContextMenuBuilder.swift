@@ -109,4 +109,21 @@ class TrackContextMenuBuilder {
     static func getUserPlaylists() -> [Playlist] {
         DatabaseCache.shared.allPlaylists.filter { !$0.isSmart }
     }
+    
+    // MARK: - R128 Scanning Actions
+    
+    static func scanTrackR128(_ track: Track) {
+        R128LoudnessScanner.shared.scanTracks([track])
+        NotificationManager.shared.addMessage(.info, "Scanning '\(track.title)' for R128 loudness...")
+    }
+    
+    static func scanAlbumR128(_ track: Track) {
+        R128LoudnessScanner.shared.scanAlbum(album: track.album, artist: track.artist)
+        NotificationManager.shared.addMessage(.info, "Scanning album '\(track.album)' for R128 loudness...")
+    }
+    
+    static func scanArtistR128(_ track: Track) {
+        R128LoudnessScanner.shared.scanArtist(artist: track.artist)
+        NotificationManager.shared.addMessage(.info, "Scanning tracks by '\(track.artist)' for R128 loudness...")
+    }
 }

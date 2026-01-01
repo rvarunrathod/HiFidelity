@@ -25,6 +25,9 @@
   <a href="https://github.com/rvarunrathod/HiFidelity/stargazers">
     <img src="https://img.shields.io/badge/⭐%20Give%20a%20Star-Support%20the%20project-orange?style=for-the-badge" alt="Give a Star">
   </a>
+  <a href="https://discord.gg/YBeAgsqRtS">
+    <img src="https://img.shields.io/badge/Discord-JOIN-GREEN.svg?style=for-the-badge&logo=discord" alt="Discord">
+  </a>
 </p>
 
 

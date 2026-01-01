@@ -13,9 +13,6 @@
   <a href="https://github.com/rvarunrathod/HiFidelity/releases">
     <img alt="GitHub Downloads (all assets, all releases)" src="https://img.shields.io/github/downloads/rvarunrathod/HiFidelity/total?label=Downloads&style=flat-square&color=blue">
   </a>
-  <a href="https://github.com/rvarunrathod/HiFidelity/blob/main/LICENSE">
-    <img alt="License" src="https://img.shields.io/github/license/rvarunrathod/HiFidelity?label=License&style=flat-square&color=00796b">
-  </a>
   <a href="https://github.com/rvarunrathod/HiFidelity/releases/latest">
     <img alt="Latest Release" src="https://img.shields.io/github/v/release/rvarunrathod/HiFidelity?label=Latest%20Release&style=flat-square&color=00796b">
   </a>

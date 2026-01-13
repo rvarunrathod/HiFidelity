@@ -5,6 +5,37 @@
         <description>Updates for HiFidelity - High-Fidelity Music Player</description>
         <language>en</language>
         <item>
+            <title>Version 1.0.9</title>
+            <pubDate>Tue, 13 Jan 2026 17:50:33 +0530</pubDate>
+            <sparkle:version>109</sparkle:version>
+            <sparkle:shortVersionString>1.0.9</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <enclosure
+                url="https://github.com/rvarunrathod/HiFidelity/releases/download/v1.0.9/HiFidelity-1.0.9-Universal.dmg"
+                sparkle:edSignature="bVj7yFsnOJ0UI9OgnRdVSmYF0p2a2m39yauR1Qs04bqna6rTtMShXoMU9A6joaMQk9NMRhFndv6nB4aGOJ9NCQ=="
+                length="14219347"
+                type="application/octet-stream"
+            />
+            <description><![CDATA[
+                <h2>Improvement</h2>
+<ul>
+    <li>Added goto current playing song functionality</li>
+    <li>Added STOP track functionality, pressing option key will make it visible</li>
+    <li>Added mini player button, you can toggle between main window and mini player</li>
+    <li>Allow the sorting by playlist original order</li>
+    <li>Allow quickly play/shuffle/add to queue options for album and artist view</li>
+    <li>Removed limitation in search result view</li>
+    <li>Album view, added album artist name below card view</li>
+    <li>Allow multiple deletion of the playlists</li>
+</ul>
+<h2>Fixes</h2>
+<ul>
+    <li>Table header now show current sorting order</li>
+</ul>
+<p><a href="https://github.com/rvarunrathod/HiFidelity/compare/v1.0.8...v1.0.9">Full Changelog</a></p>
+            ]]></description>
+        </item>
+        <item>
             <title>Version 1.0.8</title>
             <pubDate>Mon, 22 Dec 2025 15:42:14 +0530</pubDate>
             <sparkle:version>108</sparkle:version>

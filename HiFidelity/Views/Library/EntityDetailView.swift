@@ -259,7 +259,7 @@ struct EntityDetailView: View {
         let isAscending = currentSortAscending.wrappedValue
         
         if let sortField = TrackSortField.allFields.first(where: { $0.rawValue == field }) {
-            sortOrder = [sortField.getComparator(ascending: isAscending)]
+            sortOrder = sortField.getComparators(ascending: isAscending)
         }
     }
     

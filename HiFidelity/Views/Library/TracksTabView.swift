@@ -62,7 +62,7 @@ struct TracksTabView: View {
             
             // Restore saved sort order
             if let field = TrackSortField.allFields.first(where: { $0.rawValue == savedSortField }) {
-                sortOrder = [field.getComparator(ascending: savedSortAscending)]
+                sortOrder = field.getComparators(ascending: savedSortAscending)
             }
             
             if isVisible && !hasLoadedOnce {
@@ -436,6 +436,28 @@ enum TrackSortField: String, Hashable {
             return KeyPathComparator(\Track.discNumber, order: order)
         }
     }
+    
+    func getComparators(ascending: Bool) -> [KeyPathComparator<Track>] {
+        let order: SortOrder = ascending ? .forward : .reverse
+        
+        switch self {
+        case .trackNumber:
+            // Sort by disc first, then track number
+            return [
+                KeyPathComparator(\Track.discNumber, order: order),
+                KeyPathComparator(\Track.trackNumber, order: order)
+            ]
+        case .discNumber:
+            // Sort by disc first, then track number
+            return [
+                KeyPathComparator(\Track.discNumber, order: order),
+                KeyPathComparator(\Track.trackNumber, order: order)
+            ]
+        default:
+            // All other fields use single comparator
+            return [getComparator(ascending: ascending)]
+        }
+    }
 }
 
 // MARK: - Track Table Options Dropdown
@@ -571,13 +593,11 @@ struct TrackTableOptionsDropdown: View {
     }
     
     private func setSortField(_ field: TrackSortField) {
-        let newComparator = field.getComparator(ascending: isAscending)
-        sortOrder = [newComparator]
+        sortOrder = field.getComparators(ascending: isAscending)
     }
     
     private func setSortAscending(_ ascending: Bool) {
-        let newComparator = currentSortField.getComparator(ascending: ascending)
-        sortOrder = [newComparator]
+        sortOrder = currentSortField.getComparators(ascending: ascending)
     }
 }
 

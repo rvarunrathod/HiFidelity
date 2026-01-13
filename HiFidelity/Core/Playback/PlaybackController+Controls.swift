@@ -81,18 +81,19 @@ extension PlaybackController {
         }
     }
     
-    /// Stop playback when queue ends (pause instead of stop to keep track loaded for seeking)
+    /// Stop playback completely and reset position
     func stopPlayback() {
         _ = audioEngine.pause()
         audioEngine.clearPreloadedTrack()
         isPlaying = false
+        currentTime = 0
         stopPositionTimer()
         
         // Clear gapless state
         nextTrack = nil
         isNextTrackPreloaded = false
         
-        Logger.info("Playback stopped - end of queue")
+        Logger.info("Playback stopped")
     }
     
     // MARK: - Seeking

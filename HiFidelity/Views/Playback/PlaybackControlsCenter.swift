@@ -137,16 +137,44 @@ private struct PlayPauseButton: View {
     let action: () -> Void
     
     @ObservedObject var theme = AppTheme.shared
+    @ObservedObject var playback = PlaybackController.shared
+    @State private var modifierFlags: NSEvent.ModifierFlags = []
     
     var body: some View {
-        Button(action: action) {
-            Image(systemName: isPlaying ? "pause.circle.fill" : "play.circle.fill")
+        Button(action: buttonAction) {
+            Image(systemName: buttonIcon)
                 .font(.system(size: 44))
-                .foregroundColor(isDisabled ? .secondary.opacity(0.3) : theme.currentTheme.primaryColor)
+                .foregroundColor(isDisabled ? .secondary.opacity(0.3) : (isStopMode ? .red : theme.currentTheme.primaryColor))
                 .contentShape(Rectangle())
         }
         .buttonStyle(PlainScaleButtonStyle())
         .disabled(isDisabled)
+        .onAppear {
+            // Start monitoring modifier flags
+            NSEvent.addLocalMonitorForEvents(matching: .flagsChanged) { event in
+                modifierFlags = event.modifierFlags
+                return event
+            }
+        }
+    }
+    
+    private var isStopMode: Bool {
+        modifierFlags.contains(.option)
+    }
+    
+    private var buttonIcon: String {
+        if isStopMode {
+            return "stop.circle.fill"
+        }
+        return isPlaying ? "pause.circle.fill" : "play.circle.fill"
+    }
+    
+    private func buttonAction() {
+        if isStopMode {
+            playback.stopPlayback()
+        } else {
+            action()
+        }
     }
 }
 

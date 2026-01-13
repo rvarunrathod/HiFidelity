@@ -413,13 +413,6 @@ private struct AutoplayToggle: View {
                 Image(systemName: playback.isAutoplayEnabled ? "infinity.circle.fill" : "infinity.circle")
                     .font(.system(size: 16, weight: .medium))
                     .foregroundColor(playback.isAutoplayEnabled ? theme.currentTheme.primaryColor : .secondary)
-                
-                if showTooltip {
-                    Text(playback.isAutoplayEnabled ? "On" : "Off")
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundColor(playback.isAutoplayEnabled ? theme.currentTheme.primaryColor : .secondary)
-                        .transition(.opacity)
-                }
             }
             .padding(.horizontal, 8)
             .padding(.vertical, 4)

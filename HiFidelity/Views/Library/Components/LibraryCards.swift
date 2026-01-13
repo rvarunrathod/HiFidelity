@@ -82,14 +82,13 @@ struct AlbumCard: View, Equatable {
                         .lineLimit(1)
                         .help(album.title)
                     
-                    if let year = album.year {
-                        Text(year)
-                            .font(.system(size: 10, weight: .medium))
-                            .foregroundColor(.secondary)
-                            .lineLimit(1)
-                    }
-                    
-                    Text("\(album.trackCount.description) \(album.trackCount == 1 ? "song" : "songs")")
+                    Text(album.displayArtist)
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundColor(.secondary)
+                        .lineLimit(1)
+                     
+                    let albumYear = (album.year != nil && !album.year!.isEmpty) ? "\(album.year!) • " : ""
+                    Text("\(albumYear)\(album.trackCount.description) \(album.trackCount == 1 ? "song" : "songs")")
                         .font(.system(size: 10))
                         .foregroundColor(.secondary.opacity(0.85))
                         .lineLimit(1)
@@ -497,12 +496,43 @@ struct AlbumContextMenu: View {
                 Label("Shuffle", systemImage: "shuffle")
             }
             
+            Button {
+                addToQueue()
+            } label: {
+                Label("Add to Queue", systemImage: "plus")
+            }
+            
             Divider()
             
             Button {
                 onViewDetails()
             } label: {
                 Label("View Details", systemImage: "info.circle")
+            }
+        }
+    }
+    
+    private func addToQueue() {
+        Task {
+            guard let albumId = album.id else { return }
+            do {
+                var tracks = try await databaseManager.getTracksForAlbum(albumId: albumId)
+                guard !tracks.isEmpty else { return }
+                
+                // Apply saved sorting preference
+                let sortField = UserDefaults.standard.string(forKey: "albumDetailSortField") ?? "trackNumber"
+                let sortAscending = UserDefaults.standard.bool(forKey: "albumDetailSortAscending")
+                
+                if let field = TrackSortField.allFields.first(where: { $0.rawValue == sortField }) {
+                    let comparators = field.getComparators(ascending: sortAscending)
+                    tracks = tracks.sorted(using: comparators)
+                }
+                
+                await MainActor.run {
+                    playback.addToQueue(tracks)
+                }
+            } catch {
+                Logger.error("Failed to add album to queue: \(error)")
             }
         }
     }
@@ -579,12 +609,43 @@ struct ArtistContextMenu: View {
                 Label("Shuffle", systemImage: "shuffle")
             }
             
+            Button {
+                addToQueue()
+            } label: {
+                Label("Add to Queue", systemImage: "plus")
+            }
+            
             Divider()
             
             Button {
                 onViewDetails()
             } label: {
                 Label("View Details", systemImage: "info.circle")
+            }
+        }
+    }
+    
+    private func addToQueue() {
+        Task {
+            guard let artistId = artist.id else { return }
+            do {
+                var tracks = try await databaseManager.getTracksForArtist(artistId: artistId)
+                guard !tracks.isEmpty else { return }
+                
+                // Apply saved sorting preference
+                let sortField = UserDefaults.standard.string(forKey: "artistDetailSortField") ?? "title"
+                let sortAscending = UserDefaults.standard.bool(forKey: "artistDetailSortAscending")
+                
+                if let field = TrackSortField.allFields.first(where: { $0.rawValue == sortField }) {
+                    let comparators = field.getComparators(ascending: sortAscending)
+                    tracks = tracks.sorted(using: comparators)
+                }
+                
+                await MainActor.run {
+                    playback.addToQueue(tracks)
+                }
+            } catch {
+                Logger.error("Failed to add artist tracks to queue: \(error)")
             }
         }
     }

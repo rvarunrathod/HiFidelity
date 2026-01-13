@@ -23,7 +23,7 @@ struct HiFidelityApp: App {
     @Environment(\.openWindow) private var openWindow
 
     var body: some Scene {
-        WindowGroup {
+        WindowGroup(id: "main-player") {
             ModernPlayerLayout()
                 .environmentObject(DatabaseManager.shared)
                 .environmentObject(appTheme)
@@ -76,6 +76,9 @@ struct HiFidelityApp: App {
     private func configureWindow() {
         // Configure window for custom title bar with native controls
         if let window = NSApplication.shared.windows.first {
+            // Set identifier for the main window
+            window.identifier = NSUserInterfaceItemIdentifier("MainPlayerWindow")
+            
             window.titlebarAppearsTransparent = true
             window.titleVisibility = .hidden
             window.styleMask.insert(.fullSizeContentView)

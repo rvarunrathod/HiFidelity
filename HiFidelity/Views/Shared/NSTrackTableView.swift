@@ -91,6 +91,9 @@ struct NSTrackTableView: NSViewRepresentable {
         context.coordinator.playlistContext = playlistContext
         context.coordinator.sortOrder = $sortOrder
         
+        // Sync sort descriptors from sortOrder
+        context.coordinator.syncSortDescriptors(to: tableView)
+        
         // Only reload if tracks actually changed
         if tracksChanged {
             tableView.reloadData()
@@ -716,6 +719,39 @@ struct NSTrackTableView: NSViewRepresentable {
             }
             
             sortOrder.wrappedValue = [comparator]
+        }
+        
+        func syncSortDescriptors(to tableView: NSTableView) {
+            // Convert SwiftUI KeyPathComparator to NSSortDescriptor
+            guard let firstComparator = sortOrder.wrappedValue.first else { return }
+            
+            let comparatorString = String(describing: firstComparator)
+            let isAscending = comparatorString.contains("forward")
+            
+            // Map comparator to column key
+            let keyMapping: [(String, String)] = [
+                ("title", "title"),
+                ("artist", "artist"),
+                ("album", "album"),
+                ("genre", "genre"),
+                ("year", "year"),
+                ("trackNumber", "trackNumber"),
+                ("discNumber", "discNumber"),
+                ("duration", "duration"),
+                ("playCount", "playCount"),
+                ("codec", "codec"),
+                ("dateAdded", "dateAdded"),
+                ("filename", "filename"),
+                ("playlistPosition", "playlistPosition")
+            ]
+            
+            for (keyPath, columnKey) in keyMapping {
+                if comparatorString.contains(keyPath) {
+                    let descriptor = NSSortDescriptor(key: columnKey, ascending: isAscending)
+                    tableView.sortDescriptors = [descriptor]
+                    return
+                }
+            }
         }
         
         // MARK: - Column Persistence

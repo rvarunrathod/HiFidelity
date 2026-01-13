@@ -62,7 +62,7 @@ struct TracksTabView: View {
             
             // Restore saved sort order
             if let field = TrackSortField.allFields.first(where: { $0.rawValue == savedSortField }) {
-                sortOrder = [field.getComparator(ascending: savedSortAscending)]
+                sortOrder = field.getComparators(ascending: savedSortAscending)
             }
             
             if isVisible && !hasLoadedOnce {
@@ -338,6 +338,7 @@ struct TracksTabView: View {
             "filename": .filename,
             "trackNumber": .trackNumber,
             "discNumber": .discNumber,
+            "playlistPosition": .playlistOrder,
         ]
         
         for (key, field) in sortKeyMap {
@@ -380,6 +381,7 @@ enum TrackSortField: String, Hashable {
     case filename
     case trackNumber
     case discNumber
+    case playlistOrder
     
     var displayName: String {
         switch self {
@@ -395,15 +397,16 @@ enum TrackSortField: String, Hashable {
         case .filename: return "Filename"
         case .trackNumber: return "Track Number"
         case .discNumber: return "Disc Number"
+        case .playlistOrder: return "Playlist Order"
         }
     }
     
     static var regularFields: [TrackSortField] {
-        [.title, .artist, .album, .genre, .year, .duration, .playCount, .codec, .dateAdded, .filename, .trackNumber, .discNumber]
+        [.title, .artist, .album, .genre, .year, .duration, .playCount, .codec, .dateAdded, .filename, .trackNumber, .discNumber, .playlistOrder]
     }
     
     static var allFields: [TrackSortField] {
-        [.title, .artist, .album, .genre, .year, .duration, .playCount, .codec, .dateAdded, .filename, .trackNumber, .discNumber]
+        [.title, .artist, .album, .genre, .year, .duration, .playCount, .codec, .dateAdded, .filename, .trackNumber, .discNumber, .playlistOrder]
     }
     
     func getComparator(ascending: Bool) -> KeyPathComparator<Track> {
@@ -434,6 +437,30 @@ enum TrackSortField: String, Hashable {
             return KeyPathComparator(\Track.trackNumber, order: order)
         case .discNumber:
             return KeyPathComparator(\Track.discNumber, order: order)
+        case .playlistOrder:
+            return KeyPathComparator(\Track.playlistPosition, order: order)
+        }
+    }
+    
+    func getComparators(ascending: Bool) -> [KeyPathComparator<Track>] {
+        let order: SortOrder = ascending ? .forward : .reverse
+        
+        switch self {
+        case .trackNumber:
+            // Sort by disc first, then track number
+            return [
+                KeyPathComparator(\Track.discNumber, order: order),
+                KeyPathComparator(\Track.trackNumber, order: order)
+            ]
+        case .discNumber:
+            // Sort by disc first, then track number
+            return [
+                KeyPathComparator(\Track.discNumber, order: order),
+                KeyPathComparator(\Track.trackNumber, order: order)
+            ]
+        default:
+            // All other fields use single comparator
+            return [getComparator(ascending: ascending)]
         }
     }
 }
@@ -468,6 +495,7 @@ struct TrackTableOptionsDropdown: View {
             "filename": .filename,
             "trackNumber": .trackNumber,
             "discNumber": .discNumber,
+            "playlistPosition": .playlistOrder,
         ]
         
         for (key, field) in sortKeyMap {
@@ -571,13 +599,11 @@ struct TrackTableOptionsDropdown: View {
     }
     
     private func setSortField(_ field: TrackSortField) {
-        let newComparator = field.getComparator(ascending: isAscending)
-        sortOrder = [newComparator]
+        sortOrder = field.getComparators(ascending: isAscending)
     }
     
     private func setSortAscending(_ ascending: Bool) {
-        let newComparator = currentSortField.getComparator(ascending: ascending)
-        sortOrder = [newComparator]
+        sortOrder = currentSortField.getComparators(ascending: ascending)
     }
 }
 

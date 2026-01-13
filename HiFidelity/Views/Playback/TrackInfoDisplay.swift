@@ -21,17 +21,42 @@ struct TrackInfoDisplay: View {
             // Album artwork
             artworkView
             
-            // Track details and favorite
+            // Track details
             if let track = currentTrack {
-                HStack(spacing: 4) {
-                    trackDetails(for: track)
-                    favoriteButton(for: track)
-                }
+                trackDetails(for: track)
             } else {
                 placeholderDetails
             }
+
+            // Buttons stack (vertical)
+            VStack(spacing: 2) {
+                // Favorite button on top
+                if let track = currentTrack {
+                    favoriteButton(for: track)
+                } else {
+                    Color.clear.frame(width: 28, height: 28)
+                }
+                
+                // Mini Player button on bottom
+                Button(action: {
+                    // Hide the main window
+                    if let mainWindow = NSApp.mainWindow {
+                        mainWindow.orderOut(nil)
+                    }
+                    // Show mini player
+                    MiniPlayerWindowController.show()
+                }) {
+                    Image(systemName: "pip.enter")
+                        .font(.system(size: 16))
+                        .foregroundColor(.secondary)
+                        .frame(width: 28, height: 28)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(PlainHoverButtonStyle())
+                .help("Mini Player")
+            }
         }
-        .frame(minWidth: 200, maxWidth: 240, alignment: .leading)
+        .frame(minWidth: 200, maxWidth: 280, alignment: .leading)
         .onReceive(playback.$currentTrack) { track in
             currentTrack = track
             updateCachedAudioQuality()

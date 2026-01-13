@@ -20,12 +20,14 @@ extension DatabaseManager {
                 .order(PlaylistTrack.Columns.position.asc)
                 .fetchAll(db)
             
-            // Get actual tracks
+            // Get actual tracks and set their playlist position
             var tracks: [Track] = []
             for playlistTrack in playlistTracks {
-                if let track = try Track
+                if var track = try Track
                     .filter(Track.Columns.trackId == playlistTrack.trackId)
                     .fetchOne(db) {
+                    // Set the playlist position for sorting
+                    track.playlistPosition = playlistTrack.position
                     tracks.append(track)
                 }
             }
@@ -106,25 +108,29 @@ extension DatabaseManager {
     // MARK: - Delete Playlist
     
     func deletePlaylist(_ playlist: PlaylistItem) async throws {
-        guard case .user(let playlistModel) = playlist.type else { return }
-        
-        let playlistId = playlistModel.id
+        if case .user(let model) = playlist.type, let id = model.id {
+            try await deletePlaylists(ids: [id])
+        }
+    }
+    
+    func deletePlaylists(ids: [Int64]) async throws {
+        guard !ids.isEmpty else { return }
         
         try await dbQueue.write { db in
-            // Delete playlist tracks first (cascade)
+            // Delete playlist tracks for all selected playlists
             try PlaylistTrack
-                .filter(PlaylistTrack.Columns.playlistId == playlistId)
+                .filter(ids.contains(PlaylistTrack.Columns.playlistId))
                 .deleteAll(db)
             
-            // Delete playlist
+            // Delete the playlists themselves
             try Playlist
-                .filter(Playlist.Columns.id == playlistId)
+                .filter(ids.contains(Playlist.Columns.id))
                 .deleteAll(db)
         }
         
-        Logger.info("Deleted playlist: \(playlist.name)")
+        Logger.info("Deleted \(ids.count) playlists")
         
-        // Post notification (cache will auto-invalidate via notification observer)
+        // Post notification once for all deletions
         await MainActor.run {
             NotificationCenter.default.post(name: .playlistsDidChange, object: nil)
         }

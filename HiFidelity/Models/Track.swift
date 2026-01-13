@@ -87,6 +87,9 @@ struct Track: Identifiable, Equatable, Hashable, FetchableRecord, MutablePersist
     // R128 Loudness Analysis (for volume normalization)
     var r128IntegratedLoudness: Double? // in LUFS
     
+    // Transient property for playlist order (not persisted to database)
+    var playlistPosition: Int?
+    
     var filename: String {
         url.lastPathComponent
     }

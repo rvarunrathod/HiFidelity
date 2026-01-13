@@ -136,6 +136,18 @@ struct PlaylistSidebarView: View {
                 }
                 .buttonStyle(.plain)
                 
+                Button {
+                    selectAllPlaylists()
+                } label: {
+                    let visibleSelectable = viewModel.pinnedPlaylists + viewModel.userPlaylists
+                    let allVisibleSelected = !visibleSelectable.isEmpty && visibleSelectable.allSatisfy { selectedPlaylistIds.contains($0.id) }
+                    Text(allVisibleSelected ? "Deselect All" : "Select All")
+                        .font(AppFonts.labelMedium)
+                        .foregroundColor(theme.currentTheme.primaryColor)
+                }
+                .buttonStyle(.plain)
+                .padding(.leading, 8)
+                
                 Spacer()
                 
                 Text("\(selectedPlaylistIds.count) selected")
@@ -494,21 +506,50 @@ struct PlaylistSidebarView: View {
 
     
     private func deleteSelectedPlaylists() {
-        Task {
-            for playlistId in selectedPlaylistIds {
-                // Find the playlist in the viewModel
-                if let playlist = viewModel.allPlaylists.first(where: { $0.id == playlistId }),
-                   case .user = playlist.type {
-                    do {
-                        try await databaseManager.deletePlaylist(playlist)
-                    } catch {
-                        Logger.error("Failed to delete playlist \(playlist.name): \(error)")
-                    }
-                }
+        // Extract raw database IDs from the selected strings (e.g., "user_123" -> 123)
+        let idsToDelete = selectedPlaylistIds.compactMap { idString -> Int64? in
+            if idString.hasPrefix("user_") {
+                return Int64(idString.dropFirst(5))
             }
-            // Exit selection mode and clear selections
-            isSelectionMode = false
-            selectedPlaylistIds.removeAll()
+            return nil
+        }
+        
+        guard !idsToDelete.isEmpty else { return }
+        
+        Task {
+            do {
+                try await databaseManager.deletePlaylists(ids: idsToDelete)
+                
+                await MainActor.run {
+                    // Exit selection mode and clear selections ONLY on success
+                    isSelectionMode = false
+                    selectedPlaylistIds.removeAll()
+                }
+            } catch {
+                Logger.error("Failed to delete playlists: \(error)")
+            }
+        }
+    }
+    
+    private func selectAllPlaylists() {
+        // Collect all currently visible user (deletable) playlists
+        let visibleSelectable = viewModel.pinnedPlaylists + viewModel.userPlaylists
+        let visibleIds = visibleSelectable.map { $0.id }
+        
+        guard !visibleIds.isEmpty else { return }
+        
+        // If all visible ones are already selected, deselect them
+        let allVisibleSelected = visibleIds.allSatisfy { selectedPlaylistIds.contains($0) }
+        
+        if allVisibleSelected {
+            for id in visibleIds {
+                selectedPlaylistIds.remove(id)
+            }
+        } else {
+            // Otherwise, select all visible ones
+            for id in visibleIds {
+                selectedPlaylistIds.insert(id)
+            }
         }
     }
     

@@ -184,6 +184,7 @@ struct SearchResultsView: View {
             }
             .padding(20)
         }
+        .id(selectedCategory)
     }
     
     // MARK: - Result Sections
@@ -214,13 +215,15 @@ struct SearchResultsView: View {
     }
     
     private var tracksSection: some View {
-        VStack(spacing: 0) {
-            ForEach(results.tracks.prefix(10)) { track in
+        let tracksToShow = selectedCategory == .all ? Array(results.tracks.prefix(10)) : results.tracks
+        
+        return VStack(spacing: 0) {
+            ForEach(tracksToShow) { track in
                 TrackSearchRow(track: track) {
                     playback.playTracks([track], startingAt: 0)
                 }
                 
-                if track.id != results.tracks.prefix(10).last?.id {
+                if track.id != tracksToShow.last?.id {
                     Divider()
                         .padding(.leading, 60)
                 }
@@ -233,10 +236,12 @@ struct SearchResultsView: View {
     }
     
     private var albumsSection: some View {
-        LazyVGrid(columns: [
+        let albumsToShow = selectedCategory == .all ? Array(results.albums.prefix(8)) : results.albums
+        
+        return LazyVGrid(columns: [
             GridItem(.adaptive(minimum: 150, maximum: 200), spacing: 16)
         ], spacing: 16) {
-            ForEach(results.albums.prefix(8)) { album in
+            ForEach(albumsToShow) { album in
                 AlbumCard(album: album) {
                     selectedEntity = .album(album)
                 }
@@ -245,10 +250,12 @@ struct SearchResultsView: View {
     }
     
     private var artistsSection: some View {
-        LazyVGrid(columns: [
+        let artistsToShow = selectedCategory == .all ? Array(results.artists.prefix(8)) : results.artists
+        
+        return LazyVGrid(columns: [
             GridItem(.adaptive(minimum: 150, maximum: 200), spacing: 16)
         ], spacing: 16) {
-            ForEach(results.artists.prefix(8)) { artist in
+            ForEach(artistsToShow) { artist in
                 ArtistCard(artist: artist) {
                     selectedEntity = .artist(artist)
                 }
@@ -257,10 +264,12 @@ struct SearchResultsView: View {
     }
     
     private var genresSection: some View {
-        LazyVGrid(columns: [
+        let genresToShow = selectedCategory == .all ? Array(results.genres.prefix(8)) : results.genres
+        
+        return LazyVGrid(columns: [
             GridItem(.adaptive(minimum: 150, maximum: 200), spacing: 16)
         ], spacing: 16) {
-            ForEach(results.genres.prefix(8)) { genre in
+            ForEach(genresToShow) { genre in
                 GenreCard(genre: genre) {
                     selectedEntity = .genre(genre)
                 }
@@ -269,10 +278,12 @@ struct SearchResultsView: View {
     }
     
     private var playlistsSection: some View {
-        LazyVGrid(columns: [
+        let playlistsToShow = selectedCategory == .all ? Array(results.playlists.prefix(8)) : results.playlists
+        
+        return LazyVGrid(columns: [
             GridItem(.adaptive(minimum: 150, maximum: 200), spacing: 16)
         ], spacing: 16) {
-            ForEach(results.playlists.prefix(8)) { playlist in
+            ForEach(playlistsToShow) { playlist in
                 PlaylistSearchCard(playlist: playlist) {
                     let playlistItem = PlaylistItem(
                         id: "user_\(playlist.id ?? 0)",

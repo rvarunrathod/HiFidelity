@@ -46,22 +46,25 @@ extension PlaybackController {
         playTrackAtIndex(currentQueueIndex)
     }
     
-    /// Play tracks in shuffled order (like Apple Music shuffle play button)
+    /// Play tracks in shuffled order 
     func playTracksShuffled(_ tracks: [Track]) {
         guard !tracks.isEmpty else { return }
         
         // Store original queue
         originalQueue = tracks
-        originalQueueIndex = 0
+        
+        // Pick a random starting index
+        let randomIndex = Int.random(in: 0..<tracks.count)
+        originalQueueIndex = randomIndex
         
         // Enable shuffle if not already enabled
         let wasShuffleEnabled = isShuffleEnabled
         isShuffleEnabled = true
         
-        // Create shuffled queue starting from first track
-        createShuffledQueue(startingFrom: 0)
+        // Create shuffled queue starting from the random track
+        createShuffledQueue(startingFrom: randomIndex)
         
-        // Play first track in shuffled queue
+        // Play first track in shuffled queue (which is the random track we picked)
         playTrackAtIndex(0)
         
         if !wasShuffleEnabled {
@@ -161,12 +164,19 @@ extension PlaybackController {
     }
     
     func clearQueue() {
-        queue.removeAll()
-        originalQueue.removeAll()
-        currentQueueIndex = -1
-        originalQueueIndex = -1
-        currentTrack = nil
-        isPlaying = false
+        // Keep the currently playing track in the queue if it exists
+        if let current = currentTrack {
+            queue = [current]
+            originalQueue = [current]
+            currentQueueIndex = 0
+            originalQueueIndex = 0
+        } else {
+            queue.removeAll()
+            originalQueue.removeAll()
+            currentQueueIndex = -1
+            originalQueueIndex = -1
+        }
+        
         shuffledIndices.removeAll()
         shufflePlayedIndices.removeAll()
         

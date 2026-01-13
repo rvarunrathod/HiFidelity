@@ -14,6 +14,7 @@ struct QueuePanel: View {
     
     @State private var hoveredIndex: Int? = nil
     @State private var draggedIndex: Int?
+    @State private var scrollProxy: ScrollViewProxy?
     
     var body: some View {
         VStack(spacing: 0) {
@@ -46,6 +47,19 @@ struct QueuePanel: View {
                 
                 Spacer()
                 
+                // Go to current track button (only show if there's a current track and queue)
+                if playback.currentQueueIndex >= 0 && playback.currentQueueIndex < playback.queue.count {
+                    Button {
+                        scrollToCurrentTrack()
+                    } label: {
+                        Image(systemName: "scope")
+                            .font(.system(size: 18))
+                            .foregroundColor(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .help("Go to Current Track")
+                }
+                
                 // Autoplay toggle
                 AutoplayToggle()
                 
@@ -63,32 +77,6 @@ struct QueuePanel: View {
             }
             .padding(.horizontal, 20)
             .padding(.vertical, 12)
-            
-            // Now Playing section
-            if let currentTrack = playback.currentTrack {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Now playing")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundColor(.secondary)
-                        .padding(.horizontal, 20)
-                    
-                    currentTrackCard(track: currentTrack)
-                }
-                .padding(.bottom, 16)
-            }
-            
-            // Next up header
-            if !playback.queue.isEmpty {
-                HStack {
-                    Text("Next up")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundColor(.secondary)
-                    
-                    Spacer()
-                }
-                .padding(.horizontal, 20)
-                .padding(.bottom, 8)
-            }
         }
         .background(Color(nsColor: .windowBackgroundColor))
     }
@@ -166,25 +154,31 @@ struct QueuePanel: View {
     // MARK: - Queue List
     
     private var queueList: some View {
-        ScrollView {
-            LazyVStack(spacing: 0) {
-                ForEach(Array(playback.queue.enumerated()), id: \.offset) { index, track in
-                    queueItem(track: track, index: index)
-                        .background(
-                            Group {
-                                if index == playback.currentQueueIndex {
-                                    theme.currentTheme.primaryColor.opacity(0.1)
-                                } else if hoveredIndex == index {
-                                    Color(nsColor: .controlBackgroundColor)
-                                } else {
-                                    Color.clear
+        ScrollViewReader { proxy in
+            ScrollView {
+                LazyVStack(spacing: 0) {
+                    ForEach(Array(playback.queue.enumerated()), id: \.offset) { index, track in
+                        queueItem(track: track, index: index)
+                            .id(index)  // Add ID for scrolling
+                            .background(
+                                Group {
+                                    if index == playback.currentQueueIndex {
+                                        theme.currentTheme.primaryColor.opacity(0.1)
+                                    } else if hoveredIndex == index {
+                                        Color(nsColor: .controlBackgroundColor)
+                                    } else {
+                                        Color.clear
+                                    }
                                 }
+                            )
+                            .onHover { hovering in
+                                hoveredIndex = hovering ? index : nil
                             }
-                        )
-                        .onHover { hovering in
-                            hoveredIndex = hovering ? index : nil
-                        }
+                    }
                 }
+            }
+            .onAppear {
+                scrollProxy = proxy
             }
         }
     }
@@ -325,6 +319,20 @@ struct QueuePanel: View {
                     isHovered = hovering
                 }
             }
+        }
+    }
+    
+    // MARK: - Helper Functions
+    
+    private func scrollToCurrentTrack() {
+        guard let proxy = scrollProxy,
+              playback.currentQueueIndex >= 0,
+              playback.currentQueueIndex < playback.queue.count else {
+            return
+        }
+        
+        withAnimation(.easeInOut(duration: 0.3)) {
+            proxy.scrollTo(playback.currentQueueIndex, anchor: .center)
         }
     }
     

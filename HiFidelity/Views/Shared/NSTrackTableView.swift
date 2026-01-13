@@ -741,7 +741,8 @@ struct NSTrackTableView: NSViewRepresentable {
                 ("playCount", "playCount"),
                 ("codec", "codec"),
                 ("dateAdded", "dateAdded"),
-                ("filename", "filename")
+                ("filename", "filename"),
+                ("playlistPosition", "playlistPosition")
             ]
             
             for (keyPath, columnKey) in keyMapping {

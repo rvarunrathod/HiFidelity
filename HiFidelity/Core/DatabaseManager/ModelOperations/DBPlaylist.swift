@@ -20,12 +20,14 @@ extension DatabaseManager {
                 .order(PlaylistTrack.Columns.position.asc)
                 .fetchAll(db)
             
-            // Get actual tracks
+            // Get actual tracks and set their playlist position
             var tracks: [Track] = []
             for playlistTrack in playlistTracks {
-                if let track = try Track
+                if var track = try Track
                     .filter(Track.Columns.trackId == playlistTrack.trackId)
                     .fetchOne(db) {
+                    // Set the playlist position for sorting
+                    track.playlistPosition = playlistTrack.position
                     tracks.append(track)
                 }
             }

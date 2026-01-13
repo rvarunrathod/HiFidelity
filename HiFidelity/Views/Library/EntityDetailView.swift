@@ -30,7 +30,7 @@ struct EntityDetailView: View {
     @AppStorage("artistDetailSortAscending") private var artistSortAscending: Bool = true
     @AppStorage("genreDetailSortField") private var genreSortField: String = "title"
     @AppStorage("genreDetailSortAscending") private var genreSortAscending: Bool = true
-    @AppStorage("playlistDetailSortField") private var playlistSortField: String = "title"
+    @AppStorage("playlistDetailSortField") private var playlistSortField: String = "playlistOrder"
     @AppStorage("playlistDetailSortAscending") private var playlistSortAscending: Bool = true
     
     // Helper computed properties for current entity's sort storage
@@ -283,6 +283,7 @@ struct EntityDetailView: View {
             "filename": .filename,
             "trackNumber": .trackNumber,
             "discNumber": .discNumber,
+            "playlistPosition": .playlistOrder,
         ]
         
         for (key, field) in sortKeyMap {

@@ -338,6 +338,7 @@ struct TracksTabView: View {
             "filename": .filename,
             "trackNumber": .trackNumber,
             "discNumber": .discNumber,
+            "playlistPosition": .playlistOrder,
         ]
         
         for (key, field) in sortKeyMap {
@@ -380,6 +381,7 @@ enum TrackSortField: String, Hashable {
     case filename
     case trackNumber
     case discNumber
+    case playlistOrder
     
     var displayName: String {
         switch self {
@@ -395,15 +397,16 @@ enum TrackSortField: String, Hashable {
         case .filename: return "Filename"
         case .trackNumber: return "Track Number"
         case .discNumber: return "Disc Number"
+        case .playlistOrder: return "Playlist Order"
         }
     }
     
     static var regularFields: [TrackSortField] {
-        [.title, .artist, .album, .genre, .year, .duration, .playCount, .codec, .dateAdded, .filename, .trackNumber, .discNumber]
+        [.title, .artist, .album, .genre, .year, .duration, .playCount, .codec, .dateAdded, .filename, .trackNumber, .discNumber, .playlistOrder]
     }
     
     static var allFields: [TrackSortField] {
-        [.title, .artist, .album, .genre, .year, .duration, .playCount, .codec, .dateAdded, .filename, .trackNumber, .discNumber]
+        [.title, .artist, .album, .genre, .year, .duration, .playCount, .codec, .dateAdded, .filename, .trackNumber, .discNumber, .playlistOrder]
     }
     
     func getComparator(ascending: Bool) -> KeyPathComparator<Track> {
@@ -434,6 +437,8 @@ enum TrackSortField: String, Hashable {
             return KeyPathComparator(\Track.trackNumber, order: order)
         case .discNumber:
             return KeyPathComparator(\Track.discNumber, order: order)
+        case .playlistOrder:
+            return KeyPathComparator(\Track.playlistPosition, order: order)
         }
     }
     
@@ -490,6 +495,7 @@ struct TrackTableOptionsDropdown: View {
             "filename": .filename,
             "trackNumber": .trackNumber,
             "discNumber": .discNumber,
+            "playlistPosition": .playlistOrder,
         ]
         
         for (key, field) in sortKeyMap {

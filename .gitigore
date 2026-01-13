@@ -1,4 +1,4 @@
-# Project directories (.gitignore)
+# Project directories
 
 .github/
 build/

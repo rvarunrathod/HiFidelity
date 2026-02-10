@@ -27,23 +27,29 @@ struct AudioOutputDevice: Identifiable, Equatable {
 /// Hog mode gives the application exclusive access to the audio device
 class DACManager: ObservableObject {
     static let shared = DACManager()
-    
     @Published private(set) var currentDeviceID: AudioDeviceID = 0
+    @Published private(set) var systemDefaultDeviceID: AudioDeviceID = 0
     @Published private(set) var availableDevices: [AudioOutputDevice] = []
     @Published private(set) var currentDevice: AudioOutputDevice?
+    @Published private(set) var systemDefaultDevice: AudioOutputDevice?
     @Published private(set) var deviceWasRemoved: Bool = false
-    
+    @Published private(set) var followsSystemDefault: Bool = true
+
     private var isHogging = false
     private var deviceListListenerProc: AudioObjectPropertyListenerProc?
-    
+    private var defaultDeviceListenerProc: AudioObjectPropertyListenerProc?
     private init() {
         currentDeviceID = getDefaultOutputDevice()
+        systemDefaultDeviceID = currentDeviceID
         refreshDeviceList()
         setupDeviceChangeListener()
+        setupDefaultDeviceChangeListener()
     }
-    
-    deinit {
-        removeDeviceChangeListener()
+    nonisolated deinit {
+        Task { @MainActor [weak self] in
+            self?.removeDeviceChangeListener()
+            self?.removeDefaultDeviceChangeListener()
+        }
     }
     
     // MARK: - Device Management
@@ -393,7 +399,37 @@ extension DACManager {
             selfPtr
         )
     }
-    
+
+    /// Set up listener for system default output device changes
+    private func setupDefaultDeviceChangeListener() {
+        var address = AudioObjectPropertyAddress(
+            mSelector: kAudioHardwarePropertyDefaultOutputDevice,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain
+        )
+
+        let listenerProc: AudioObjectPropertyListenerProc = { _, _, _, clientData in
+            guard let clientData = clientData else { return noErr }
+            let manager = Unmanaged<DACManager>.fromOpaque(clientData).takeUnretainedValue()
+
+            DispatchQueue.main.async {
+                manager.handleDefaultOutputDeviceChanged()
+            }
+
+            return noErr
+        }
+
+        defaultDeviceListenerProc = listenerProc
+
+        let selfPtr = Unmanaged.passUnretained(self).toOpaque()
+
+        AudioObjectAddPropertyListener(
+            AudioObjectID(kAudioObjectSystemObject),
+            &address,
+            listenerProc,
+            selfPtr
+        )
+    }
     /// Remove device change listener
     private func removeDeviceChangeListener() {
         guard let listenerProc = deviceListListenerProc else { return }
@@ -413,7 +449,46 @@ extension DACManager {
             selfPtr
         )
     }
-    
+
+    /// Remove default output device change listener
+    private func removeDefaultDeviceChangeListener() {
+        guard let listenerProc = defaultDeviceListenerProc else { return }
+
+        var address = AudioObjectPropertyAddress(
+            mSelector: kAudioHardwarePropertyDefaultOutputDevice,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain
+        )
+
+        let selfPtr = Unmanaged.passUnretained(self).toOpaque()
+
+        AudioObjectRemovePropertyListener(
+            AudioObjectID(kAudioObjectSystemObject),
+            &address,
+            listenerProc,
+            selfPtr
+        )
+    }
+
+    /// Handle system default output device changes
+    private func handleDefaultOutputDeviceChanged() {
+        let defaultID = getDefaultOutputDevice()
+        Logger.info("System default output device changed: \(defaultID)")
+
+        availableDevices = getAllOutputDevices()
+        updateSystemDefaultDevice()
+
+        guard followsSystemDefault else {
+            return
+        }
+
+        guard let defaultDevice = systemDefaultDevice, defaultID != 0 else {
+            Logger.warning("System default device unavailable after change")
+            return
+        }
+
+        _ = performDeviceSwitch(defaultDevice)
+    }
     /// Handle device list changes (hot-plugging)
     private func handleDeviceListChanged() {
         Logger.info("Audio device list changed (device added/removed)")
@@ -494,21 +569,7 @@ extension DACManager {
         let defaultDeviceID = getDefaultOutputDevice()
         
         if defaultDeviceID != 0 {
-            // Build device info for the new default device
-            if let deviceName = getDeviceNameForID(defaultDeviceID),
-               let deviceUID = getDeviceUIDForID(defaultDeviceID) {
-                
-                let sampleRate = getCurrentSampleRateForDevice(defaultDeviceID)
-                let channels = getChannelCountForDevice(defaultDeviceID)
-                
-                let newDevice = AudioOutputDevice(
-                    id: defaultDeviceID,
-                    name: deviceName,
-                    uid: deviceUID,
-                    sampleRate: sampleRate,
-                    channels: channels
-                )
-                
+            if let newDevice = buildDeviceInfo(for: defaultDeviceID) {
                 Logger.info("Auto-switching to default device: \(newDevice.name)")
                 if wasHogging {
                     Logger.info("Sample rate synchronization was disabled - re-enable manually if needed")
@@ -885,11 +946,14 @@ extension DACManager {
     /// Refresh the list of available devices
     func refreshDeviceList() {
         availableDevices = getAllOutputDevices()
+        updateSystemDefaultDevice()
         currentDevice = availableDevices.first { $0.id == currentDeviceID }
-        
-        // Only update to system default if we're in an invalid state (device is 0 or doesn't exist)
-        // Don't follow system default changes - preserve user's device selection
-        if currentDeviceID == 0 {
+        if followsSystemDefault {
+            if systemDefaultDeviceID != 0 {
+                currentDeviceID = systemDefaultDeviceID
+                currentDevice = systemDefaultDevice
+            }
+        } else if currentDeviceID == 0 {
             let defaultID = getDefaultOutputDevice()
             if defaultID != 0 {
                 Logger.debug("No device selected, using system default: \(defaultID)")
@@ -907,6 +971,35 @@ extension DACManager {
     
     /// Switch to a different audio device
     func switchToDevice(_ device: AudioOutputDevice) -> Bool {
+        followsSystemDefault = false
+        return performDeviceSwitch(device)
+    }
+
+    /// Switch to the current system default output device
+    func switchToSystemDefault() -> Bool {
+        let previousDeviceID = currentDeviceID
+        followsSystemDefault = true
+
+        availableDevices = getAllOutputDevices()
+        updateSystemDefaultDevice()
+        currentDevice = availableDevices.first { $0.id == currentDeviceID }
+
+        guard let defaultDevice = systemDefaultDevice else {
+            Logger.warning("System default device not available")
+            return false
+        }
+
+        if defaultDevice.id == previousDeviceID {
+            currentDeviceID = defaultDevice.id
+            currentDevice = defaultDevice
+            return true
+        }
+
+        return performDeviceSwitch(defaultDevice)
+    }
+
+    /// Internal device switch without changing follow-default mode
+    private func performDeviceSwitch(_ device: AudioOutputDevice) -> Bool {
         guard device.id != currentDeviceID else {
             Logger.debug("Already using device: \(device.name)")
             return true
@@ -941,6 +1034,39 @@ extension DACManager {
         }
         
         return true
+    }
+
+    /// Build device info for a specific ID
+    private func buildDeviceInfo(for deviceID: AudioDeviceID) -> AudioOutputDevice? {
+        guard let deviceName = getDeviceNameForID(deviceID),
+            let deviceUID = getDeviceUIDForID(deviceID)
+        else {
+            return nil
+        }
+
+        let sampleRate = getCurrentSampleRateForDevice(deviceID)
+        let channels = getChannelCountForDevice(deviceID)
+
+        return AudioOutputDevice(
+            id: deviceID,
+            name: deviceName,
+            uid: deviceUID,
+            sampleRate: sampleRate,
+            channels: channels
+        )
+    }
+
+    /// Update cached system default device info
+    private func updateSystemDefaultDevice() {
+        let defaultID = getDefaultOutputDevice()
+        systemDefaultDeviceID = defaultID
+        if let matchedDevice = availableDevices.first(where: { $0.id == defaultID }) {
+            systemDefaultDevice = matchedDevice
+        } else if defaultID != 0 {
+            systemDefaultDevice = buildDeviceInfo(for: defaultID)
+        } else {
+            systemDefaultDevice = nil
+        }
     }
 }
 

@@ -149,6 +149,17 @@ brew install --cask rvarunrathod/tap/hifidelity
 - Clone the repository
 - Open `HiFidelity.xcodeproj` in Xcode 15 or later
 
+#### Build & install locally from source
+
+```bash
+make install      # build Release (universal) + copy to /Applications
+make uninstall    # remove from /Applications
+make clean        # wipe build/make
+```
+
+Ad-hoc signed by default. To sign with a Developer ID, export `HiFidelity_TEAM_ID`
+and `HiFidelity_DEVELOPER_ID` first (same env vars as `Scripts/build.sh`).
+
 ---
 
 #### Privacy & Security

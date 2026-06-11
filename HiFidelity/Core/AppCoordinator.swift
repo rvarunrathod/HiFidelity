@@ -32,10 +32,13 @@ class AppCoordinator: ObservableObject {
         
         // Start queue persistence manager
         await QueuePersistenceManager.shared.start()
-        
+
         // Start folder monitoring if enabled
         await startFolderMonitoring()
-        
+
+        // Start remote-control HTTP server if enabled
+        await startRemoteControlServer()
+
         Logger.info("Application initialization complete")
     }
     
@@ -54,11 +57,28 @@ class AppCoordinator: ObservableObject {
             Logger.info("Folder monitoring disabled in preferences")
         }
     }
-    
+
+    /// Start the remote-control HTTP server if the user has enabled it.
+    private func startRemoteControlServer() async {
+        guard RemoteSettings.isEnabled else {
+            Logger.info("Remote control server disabled in preferences")
+            return
+        }
+        do {
+            try await RemoteControlServer.shared.start()
+        } catch {
+            Logger.error("RemoteControlServer start failed: \(error)")
+        }
+    }
+
     /// Cleanup on app termination
     func cleanup() async {
         Logger.info("Cleaning up application resources...")
-        
+
+        // Stop the remote-control HTTP server (if running). Await directly
+        // so we don't return from cleanup while the listener is still up.
+        await RemoteControlServer.shared.stop()
+
         // Stop folder monitoring
         await MainActor.run {
             FolderWatcherService.shared.stopWatching()

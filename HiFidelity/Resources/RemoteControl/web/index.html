@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1E1E1E" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#ECECEC" media="(prefers-color-scheme: light)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/assets/icon-192.png">
+<title>HiFidelity Remote</title>
+<link rel="stylesheet" href="/assets/style.css">
+</head>
+<body>
+<main id="root" class="screen">
+  <header class="hdr">
+    <div class="hdr-title">HiFidelity</div>
+    <div id="conn-status" class="conn-status" aria-live="polite">Connecting…</div>
+  </header>
+
+  <section class="art-wrap">
+    <img id="artwork" class="artwork" alt="" loading="eager" decoding="async">
+    <div id="art-fallback" class="art-fallback" hidden>♪</div>
+  </section>
+
+  <section class="meta">
+    <div id="title" class="title">—</div>
+    <div id="artist" class="artist">—</div>
+    <div id="album" class="album">—</div>
+  </section>
+
+  <section class="seek">
+    <input id="seek" class="seek-slider" type="range" min="0" max="1" step="0.001" value="0" aria-label="Track position">
+    <div class="seek-times">
+      <span id="time-current">0:00</span>
+      <span id="time-total">0:00</span>
+    </div>
+  </section>
+
+  <section class="transport" aria-label="Playback controls">
+    <button id="btn-shuffle" class="btn btn-mode" type="button" aria-label="Toggle shuffle"><span aria-hidden="true">⤮</span></button>
+    <button id="btn-prev" class="btn btn-skip" type="button" aria-label="Previous track"><span aria-hidden="true">⏮</span></button>
+    <button id="btn-toggle" class="btn btn-play" type="button" aria-label="Play or pause"><span id="play-glyph" aria-hidden="true">▶</span></button>
+    <button id="btn-next" class="btn btn-skip" type="button" aria-label="Next track"><span aria-hidden="true">⏭</span></button>
+    <button id="btn-repeat" class="btn btn-mode" type="button" aria-label="Toggle repeat"><span aria-hidden="true">↻</span></button>
+  </section>
+
+  <section class="extras">
+    <button id="btn-fav" class="btn btn-extra" type="button" aria-label="Toggle favorite"><span aria-hidden="true">♥</span></button>
+    <button id="btn-browse" class="btn btn-extra" type="button" aria-label="Open library"><span aria-hidden="true">≡</span></button>
+    <div class="vol">
+      <button id="btn-mute" class="btn btn-extra" type="button" aria-label="Toggle mute"><span id="mute-glyph" aria-hidden="true">🔊</span></button>
+      <input id="vol" class="vol-slider" type="range" min="0" max="1" step="0.01" value="0.7" aria-label="Volume">
+    </div>
+  </section>
+</main>
+
+<aside id="drawer" class="drawer" hidden aria-label="Library">
+  <header class="drawer-hdr">
+    <button id="drawer-back" class="btn btn-extra" type="button" aria-label="Back"><span aria-hidden="true">‹</span></button>
+    <div id="drawer-title" class="drawer-title">Library</div>
+    <button id="drawer-close" class="btn btn-extra" type="button" aria-label="Close"><span aria-hidden="true">✕</span></button>
+  </header>
+  <div class="drawer-tabs" role="tablist">
+    <button class="tab" role="tab" data-tab="tracks" aria-selected="true">Tracks</button>
+    <button class="tab" role="tab" data-tab="albums" aria-selected="false">Albums</button>
+    <button class="tab" role="tab" data-tab="artists" aria-selected="false">Artists</button>
+    <button class="tab" role="tab" data-tab="playlists" aria-selected="false">Playlists</button>
+  </div>
+  <div class="drawer-search">
+    <input id="search" type="search" placeholder="Search…" autocomplete="off" autocapitalize="off">
+  </div>
+  <div id="drawer-list" class="drawer-list" tabindex="0"></div>
+</aside>
+<script src="/assets/app.js"></script>
+</body>
+</html>

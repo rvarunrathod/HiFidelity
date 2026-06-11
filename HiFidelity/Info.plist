@@ -38,6 +38,14 @@
     <key>NSSupportsAutomaticGraphicsSwitching</key>
     <true/>
 
+	<!-- Local Network (Remote Control HTTP server) -->
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>HiFidelity publishes its remote-control HTTP server on your local network so your iPad or phone can act as a remote.</string>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_hifidelity._tcp</string>
+	</array>
+
 	<!-- Sparkle Configuration -->
 	<key>SUEnableDownloaderService</key>
 	<true/>

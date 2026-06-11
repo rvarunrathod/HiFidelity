@@ -457,38 +457,125 @@ extension DatabaseManager {
             .trimmingCharacters(in: .whitespacesAndNewlines)
     }
     
+    // MARK: - LIKE Fallback (resilient to a desynced/empty FTS5 index)
+
+    // FTS5 external-content indexes (content='tracks' etc.) can silently go
+    // empty or stale on real libraries — the symptom is search returning
+    // nothing while plain browsing shows a full library. AdvancedSettings
+    // exposes a manual "Rebuild FTS" for this, but search itself must not
+    // depend on a healthy index. When the weighted FTS pass yields zero rows
+    // we fall back to a case-insensitive LIKE scan of the content tables.
+
+    /// True when an FTS5 index has no rows — the desync symptom this fallback
+    /// exists for. A healthy, populated index that returns zero matches is a
+    /// genuine no-match (e.g. mid-typing "zzz") and must NOT trigger the O(N)
+    /// leading-wildcard LIKE scan. The table name is a hardcoded literal, not
+    /// user input, so interpolation here is safe.
+    private func ftsIndexIsEmpty(db: Database, table: String) throws -> Bool {
+        try Int.fetchOne(db, sql: "SELECT 1 FROM \(table) LIMIT 1") == nil
+    }
+
+    /// Lowercased query terms with LIKE wildcards escaped (`\` is the ESCAPE
+    /// char in the fallback SQL). Returns nil when nothing is searchable.
+    private func likeTerms(from query: String) -> [String]? {
+        let terms = query
+            .lowercased()
+            .components(separatedBy: .whitespacesAndNewlines)
+            .filter { !$0.isEmpty }
+            .map {
+                $0.replacingOccurrences(of: "\\", with: "\\\\")
+                  .replacingOccurrences(of: "%", with: "\\%")
+                  .replacingOccurrences(of: "_", with: "\\_")
+            }
+        return terms.isEmpty ? nil : terms
+    }
+
+    /// Build `(haystack LIKE ? ESCAPE '\') AND ...` plus its bound arguments
+    /// (one `%term%` per term, with `limit` appended for the trailing LIMIT).
+    private func likeClause(haystack: String, terms: [String], limit: Int) -> (sql: String, args: StatementArguments) {
+        let clause = terms.map { _ in "\(haystack) LIKE ? ESCAPE '\\'" }.joined(separator: " AND ")
+        var args: [(any DatabaseValueConvertible)?] = terms.map { "%\($0)%" }
+        args.append(limit)
+        return (clause, StatementArguments(args))
+    }
+
+    private func searchTracksLike(db: Database, query: String, limit: Int) throws -> [Track] {
+        guard let terms = likeTerms(from: query) else { return [] }
+        let haystack = "lower(COALESCE(title,'')||' '||COALESCE(artist,'')||' '||COALESCE(album,'')||' '||COALESCE(album_artist,'')||' '||COALESCE(genre,'')||' '||COALESCE(composer,''))"
+        let (clause, args) = likeClause(haystack: haystack, terms: terms, limit: limit)
+        return try Track.fetchAll(db, sql: """
+            SELECT * FROM tracks
+            WHERE is_duplicate = 0 AND (\(clause))
+            ORDER BY title
+            LIMIT ?
+            """, arguments: args)
+    }
+
+    private func searchAlbumsLike(db: Database, query: String, limit: Int) throws -> [Album] {
+        guard let terms = likeTerms(from: query) else { return [] }
+        let haystack = "lower(COALESCE(title,'')||' '||COALESCE(normalized_name,'')||' '||COALESCE(album_artist,''))"
+        let (clause, args) = likeClause(haystack: haystack, terms: terms, limit: limit)
+        return try Album.fetchAll(db, sql: """
+            SELECT * FROM albums
+            WHERE \(clause)
+            ORDER BY sort_name
+            LIMIT ?
+            """, arguments: args)
+    }
+
+    private func searchArtistsLike(db: Database, query: String, limit: Int) throws -> [Artist] {
+        guard let terms = likeTerms(from: query) else { return [] }
+        let haystack = "lower(COALESCE(name,'')||' '||COALESCE(normalized_name,''))"
+        let (clause, args) = likeClause(haystack: haystack, terms: terms, limit: limit)
+        return try Artist.fetchAll(db, sql: """
+            SELECT * FROM artists
+            WHERE \(clause)
+            ORDER BY sort_name
+            LIMIT ?
+            """, arguments: args)
+    }
+
     // MARK: - Category-Specific Search (FTS5)
-    
+
     /// Search tracks only using FTS5 with weighted ranking
     func searchTracks(query: String, limit: Int = 100, mode: SearchMode = .and) async throws -> [Track] {
         guard !query.isEmpty else { return [] }
-        
+
         let queries = prepareFTSQueries(query, mode: mode)
-        
+
         return try await dbQueue.read { db in
-            return try searchTracksWeighted(db: db, queries: queries, limit: limit)
+            let fts = try searchTracksWeighted(db: db, queries: queries, limit: limit)
+            if !fts.isEmpty { return fts }
+            guard try ftsIndexIsEmpty(db: db, table: "tracks_fts") else { return [] }
+            return try searchTracksLike(db: db, query: query, limit: limit)
         }
     }
-    
+
     /// Search albums only using FTS5 with weighted ranking
     func searchAlbums(query: String, limit: Int = 50, mode: SearchMode = .and) async throws -> [Album] {
         guard !query.isEmpty else { return [] }
-        
+
         let queries = prepareFTSQueries(query, mode: mode)
-        
+
         return try await dbQueue.read { db in
-            return try searchAlbumsWeighted(db: db, queries: queries, limit: limit)
+            let fts = try searchAlbumsWeighted(db: db, queries: queries, limit: limit)
+            if !fts.isEmpty { return fts }
+            guard try ftsIndexIsEmpty(db: db, table: "albums_fts") else { return [] }
+            return try searchAlbumsLike(db: db, query: query, limit: limit)
         }
     }
-    
+
     /// Search artists only using FTS5 with weighted ranking
     func searchArtists(query: String, limit: Int = 50, mode: SearchMode = .and) async throws -> [Artist] {
         guard !query.isEmpty else { return [] }
-        
+
         let queries = prepareFTSQueries(query, mode: mode)
-        
+
         return try await dbQueue.read { db in
-            return try searchArtistsWeighted(db: db, queries: queries, limit: limit)
+            let fts = try searchArtistsWeighted(db: db, queries: queries, limit: limit)
+            if !fts.isEmpty { return fts }
+            guard try ftsIndexIsEmpty(db: db, table: "artists_fts") else { return [] }
+            return try searchArtistsLike(db: db, query: query, limit: limit)
         }
     }
     

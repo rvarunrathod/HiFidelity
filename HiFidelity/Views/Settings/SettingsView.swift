@@ -103,6 +103,8 @@ struct SettingsView: View {
                 }
             case .library:
                     LibrarySettings()
+            case .remote:
+                RemoteControlSettings()
             case .advanced:
                 ScrollView {
                     AdvancedSettings()
@@ -124,26 +126,29 @@ enum SettingsTab: String, CaseIterable, Identifiable {
     case appearance
     case audio
     case library
+    case remote
     case advanced
     case about
-    
+
     var id: String { rawValue }
-    
+
     var title: String {
         switch self {
         case .appearance: return "Appearance"
         case .audio: return "Audio"
         case .library: return "Library"
+        case .remote: return "Remote Control"
         case .advanced: return "Advanced"
         case .about: return "About"
         }
     }
-    
+
     var icon: String {
         switch self {
         case .appearance: return "paintbrush.fill"
         case .audio: return "speaker.wave.3.fill"
         case .library: return "music.note.list"
+        case .remote: return "antenna.radiowaves.left.and.right"
         case .advanced: return "gearshape.2.fill"
         case .about: return "info.circle.fill"
         }

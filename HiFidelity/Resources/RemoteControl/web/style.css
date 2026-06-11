@@ -1,0 +1,401 @@
+/* HiFidelity Remote — vanilla CSS, no build step. */
+
+:root {
+  /* --bg approximates NSColor.windowBackgroundColor (dynamic; no fixed hex) */
+  --bg: #ECECEC;
+  /* --bg-elev approximates NSColor.controlBackgroundColor (dynamic; no fixed hex) */
+  --bg-elev: #FFFFFF;
+  /* --fg mirrors SwiftUI .primary */
+  --fg: #1D1D1F;
+  /* --fg-muted approximates SwiftUI .secondary / macOS secondary-label light */
+  --fg-muted: #6E6E73;
+  /* --accent = Color.blue / systemBlue (Apple canonical) */
+  --accent: #007AFF;
+  --accent-fg: #FFFFFF;
+  --border: rgba(0, 0, 0, 0.08);
+  --shadow: 0 4px 18px rgba(0, 0, 0, 0.07);
+  --tap: 44px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* --bg approximates NSColor.windowBackgroundColor dark (dynamic; no fixed hex) */
+    --bg: #1E1E1E;
+    /* --bg-elev approximates NSColor.controlBackgroundColor dark (dynamic; no fixed hex) */
+    --bg-elev: #2A2A2A;
+    /* --fg mirrors SwiftUI .primary dark */
+    --fg: #F5F5F5;
+    /* --fg-muted approximates SwiftUI .secondary dark / macOS secondary-label */
+    --fg-muted: #8E8E93;
+    /* --accent = Color.blue / systemBlue dark (Apple canonical) */
+    --accent: #0A84FF;
+    --accent-fg: #FFFFFF;
+    --border: rgba(255, 255, 255, 0.08);
+    --shadow: 0 6px 22px rgba(0, 0, 0, 0.6);
+  }
+}
+
+* { box-sizing: border-box; }
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font: 16px/1.4 -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+  height: 100%;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.screen {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  /* Center the stack vertically on tall phones; `safe` falls back to
+     top-aligned if content ever exceeds the viewport so nothing clips. */
+  justify-content: safe center;
+  gap: 16px;
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 16px env(safe-area-inset-right, 16px) calc(16px + env(safe-area-inset-bottom, 0px)) env(safe-area-inset-left, 16px);
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+/* Only the artwork flexes; controls keep their intrinsic size so they
+   never get squeezed off-screen. */
+.hdr, .meta, .seek, .transport, .extras { flex: 0 0 auto; }
+
+.hdr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 4px;
+}
+.hdr-title { font-weight: 600; letter-spacing: 0.02em; font-size: 14px; opacity: 0.7; }
+.conn-status { font-size: 12px; color: var(--fg-muted); }
+.conn-status[data-state="ok"] { color: var(--fg-muted); }
+.conn-status[data-state="error"] { color: var(--accent); }
+
+.art-wrap {
+  position: relative;
+  /* Perfect square sized to the smallest of: available width (phones),
+     480-px desktop cap, and the viewport height left over after the
+     controls. The height term shrinks the artwork on tall phones so the
+     transport + extras rows always stay above the fold. flex:0 0 auto keeps
+     the flex layout from resizing the square. */
+  --side: min(100vw - 32px, 448px, 100vh - 420px);
+  --side: min(100vw - 32px, 448px, 100dvh - 420px);
+  width: var(--side);
+  height: var(--side);
+  margin: 0 auto;
+  flex: 0 0 auto;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--bg-elev);
+  box-shadow: var(--shadow);
+  display: flex; align-items: center; justify-content: center;
+}
+.artwork {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.art-fallback {
+  font-size: 96px;
+  color: var(--fg-muted);
+  opacity: 0.4;
+}
+
+.meta { text-align: center; padding: 0 8px; }
+.title { font-size: 20px; font-weight: 700; line-height: 1.25; word-break: break-word; }
+.artist { font-size: 16px; font-weight: 400; color: var(--fg); margin-top: 4px; word-break: break-word; }
+.album { font-size: 14px; font-weight: 400; color: var(--fg-muted); margin-top: 4px; word-break: break-word; }
+
+.seek { padding: 0 4px; }
+.seek-slider { width: 100%; }
+.seek-times {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--fg-muted);
+  margin-top: 4px;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+.transport {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+}
+.btn {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--fg);
+  cursor: pointer;
+  font-size: 22px;
+  min-width: var(--tap);
+  min-height: var(--tap);
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s ease, transform 0.05s ease;
+}
+.btn:active { transform: scale(0.94); }
+.btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.btn[aria-pressed="true"] { color: var(--accent); }
+
+.btn-play {
+  background: var(--accent);
+  color: var(--accent-fg);
+  font-size: 28px;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  margin: 0 auto;
+}
+.btn-skip {
+  font-size: 18px;
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  min-height: 32px;
+  color: var(--fg);
+}
+.btn-mode {
+  font-size: 14px;
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  min-height: 28px;
+}
+.btn-mode[aria-pressed="true"] {
+  color: var(--accent);
+}
+
+.extras {
+  display: grid;
+  /* B010: three children (#btn-fav, #btn-browse, .vol) need three columns —
+     two auto-sized buttons on the left and the volume slider stretching. */
+  grid-template-columns: auto auto 1fr;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 0;
+}
+.vol { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.vol-slider { flex: 1; min-width: 0; }
+
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  height: var(--tap);
+}
+
+/* Seek bar: accent-filled track via linear-gradient driven by --value (set by JS). */
+/* --value default 0% keeps the gradient valid before JS writes the first value.    */
+/* The gradient is placed on the track pseudo-element (inherits --value from host). */
+#seek::-webkit-slider-runnable-track {
+  height: 4px;
+  background: linear-gradient(
+    90deg,
+    var(--accent) var(--value, 0%),
+    var(--border) var(--value, 0%)
+  );
+  border-radius: 2px;
+  transition: height 0.1s ease;
+}
+#seek:hover::-webkit-slider-runnable-track,
+#seek:active::-webkit-slider-runnable-track {
+  height: 8px;
+}
+#seek::-moz-range-track {
+  height: 4px;
+  background: linear-gradient(
+    90deg,
+    var(--accent) var(--value, 0%),
+    var(--border) var(--value, 0%)
+  );
+  border-radius: 2px;
+  transition: height 0.1s ease;
+}
+#seek:hover::-moz-range-track,
+#seek:active::-moz-range-track {
+  height: 8px;
+}
+
+/* Volume slider: same accent-fill technique for visual consistency. */
+#vol::-webkit-slider-runnable-track {
+  height: 4px;
+  background: linear-gradient(
+    90deg,
+    var(--accent) var(--value, 70%),
+    var(--border) var(--value, 70%)
+  );
+  border-radius: 2px;
+}
+#vol::-moz-range-track {
+  height: 4px;
+  background: linear-gradient(
+    90deg,
+    var(--accent) var(--value, 70%),
+    var(--border) var(--value, 70%)
+  );
+  border-radius: 2px;
+}
+
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+}
+input[type="range"]::-moz-range-track {
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  background: var(--accent);
+  border-radius: 50%;
+  margin-top: -7px;
+}
+input[type="range"]::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  background: var(--accent);
+  border-radius: 50%;
+  border: 0;
+}
+
+@media (max-width: 360px) {
+  .title { font-size: 19px; }
+  .btn { font-size: 20px; }
+  .btn-play { font-size: 24px; width: 56px; height: 56px; }
+}
+
+/* ---------- Browse drawer ---------- */
+.drawer {
+  position: fixed;
+  inset: 0;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  z-index: 50;
+  padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+}
+.drawer[hidden] { display: none; }
+.drawer-hdr {
+  display: grid;
+  grid-template-columns: 44px 1fr 44px;
+  align-items: center;
+  padding: 8px 8px;
+  border-bottom: 1px solid var(--border);
+}
+.drawer-title {
+  text-align: center;
+  font-weight: 600;
+  font-size: 16px;
+}
+.drawer-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 8px;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--border);
+}
+.tab {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--fg-muted);
+  padding: 10px 16px;
+  border-radius: 999px;
+  font: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.tab[aria-selected="true"] {
+  color: var(--accent-fg);
+  background: var(--accent);
+}
+.drawer-search {
+  padding: 8px;
+  border-bottom: 1px solid var(--border);
+}
+#search {
+  width: 100%;
+  appearance: none;
+  -webkit-appearance: none;
+  border: 1px solid var(--border);
+  background: var(--bg-elev);
+  color: var(--fg);
+  padding: 10px 12px;
+  border-radius: 10px;
+  font: inherit;
+  min-height: 40px;
+}
+.drawer-list {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+/* Non-zero height so the IntersectionObserver has a reliable target;
+   a zero-area element intersects unreliably across browsers. */
+.scroll-sentinel {
+  height: 1px;
+  width: 100%;
+}
+.row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  min-height: var(--tap);
+}
+.row:active { background: var(--bg-elev); }
+.row-thumb {
+  width: 44px;
+  height: 44px;
+  border-radius: 6px;
+  background: var(--bg-elev);
+  flex: 0 0 auto;
+  background-size: cover;
+  background-position: center;
+}
+.row-text { flex: 1; min-width: 0; }
+.row-title {
+  font-size: 15px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.row-sub {
+  font-size: 13px;
+  color: var(--fg-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.row-meta {
+  font-size: 12px;
+  color: var(--fg-muted);
+  font-variant-numeric: tabular-nums;
+}
+.list-empty {
+  padding: 32px 16px;
+  text-align: center;
+  color: var(--fg-muted);
+}

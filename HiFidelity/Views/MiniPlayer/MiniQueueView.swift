@@ -36,17 +36,20 @@ struct MiniQueueView: View {
     
     private var header: some View {
         HStack {
-            Text("Queue")
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundColor(.primary)
+            HStack {
+                Text("Queue")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(.primary)
             
-            if !playback.queue.isEmpty {
-                Text("(\(playback.queue.count))")
-                    .font(.system(size: 12))
-                    .foregroundColor(.secondary)
+                if !playback.queue.isEmpty {
+                    Text("(\(playback.queue.count))")
+                        .font(.system(size: 12))
+                        .foregroundColor(.secondary)
+                }
+            
+                Spacer()
             }
-            
-            Spacer()
+            .overlay(WindowDragArea())
             
             // Autoplay toggle
             if !playback.queue.isEmpty {

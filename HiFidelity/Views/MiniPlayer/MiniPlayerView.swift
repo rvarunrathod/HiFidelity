@@ -42,6 +42,7 @@ struct MiniPlayerView: View {
             }
         }
         .frame(width: showArtwork ? 440 : 360)
+        .background(WindowDragArea())
         .background(
             Group {
                 if isTransparent {
@@ -165,38 +166,41 @@ struct MiniPlayerView: View {
     
     private func trackInfoHeader(track: Track) -> some View {
         HStack(spacing: 12) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(track.title)
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundColor(.primary)
-                    .lineLimit(1)
-                
-                HStack(spacing: 4) {
-                    Text(track.artist)
-                        .font(.system(size: 11))
-                        .foregroundColor(.secondary)
+            HStack(spacing: 12) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(track.title)
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(.primary)
                         .lineLimit(1)
-                    
-                    if !track.album.isEmpty {
-                        Text("•")
-                            .font(.system(size: 11))
-                            .foregroundColor(.secondary.opacity(0.5))
-                        
-                        Text(track.album)
+                
+                    HStack(spacing: 4) {
+                        Text(track.artist)
                             .font(.system(size: 11))
                             .foregroundColor(.secondary)
                             .lineLimit(1)
+                    
+                        if !track.album.isEmpty {
+                            Text("•")
+                                .font(.system(size: 11))
+                                .foregroundColor(.secondary.opacity(0.5))
+                        
+                            Text(track.album)
+                                .font(.system(size: 11))
+                                .foregroundColor(.secondary)
+                                .lineLimit(1)
+                        }
                     }
                 }
+
+                Spacer()
+
+                // Time display
+                Text("-\(formatRemainingTime())")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundColor(.secondary)
+                    .monospacedDigit()
             }
-            
-            Spacer()
-            
-            // Time display
-            Text("-\(formatRemainingTime())")
-                .font(.system(size: 11, weight: .medium))
-                .foregroundColor(.secondary)
-                .monospacedDigit()
+            .overlay(WindowDragArea())
             
             // Close button
             Button(action: {
@@ -225,7 +229,11 @@ struct MiniPlayerView: View {
             if isHoveringArtwork {
                 Color.black.opacity(0.5)
                     .transition(.opacity)
-                
+            }
+            
+            WindowDragArea()
+            
+            if isHoveringArtwork {
                 Button(action: {
                     playback.togglePlayPause()
                 }) {
@@ -514,11 +522,14 @@ struct MiniPlayerView: View {
         VStack(spacing: 0) {
             // Header with close button
             HStack {
-                Text("No Track Playing")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundColor(.primary)
-                
-                Spacer()
+                HStack {
+                    Text("No Track Playing")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(.primary)
+                    
+                    Spacer()
+                }
+                .overlay(WindowDragArea())
                 
                 // Close button
                 Button(action: {
@@ -551,6 +562,7 @@ struct MiniPlayerView: View {
                             .foregroundColor(.secondary.opacity(0.3))
                     }
                     .frame(width: 140, height: 140)
+                    .overlay(WindowDragArea())
                     
                     Divider()
                 }
@@ -566,6 +578,7 @@ struct MiniPlayerView: View {
                     Spacer()
                 }
                 .frame(maxWidth: .infinity)
+                .overlay(WindowDragArea())
             }
             .frame(height: 140)
         }
@@ -696,6 +709,18 @@ struct VolumePopoverView: View {
 }
 
 // MARK: - Preview
+
+/// Transparent area that drags the window. isMovableByWindowBackground does not cover SwiftUI text.
+struct WindowDragArea: NSViewRepresentable {
+    final class DragView: NSView {
+        // First click drags even when the mini player is not the key window
+        override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+        override func mouseDown(with event: NSEvent) { window?.performDrag(with: event) }
+    }
+
+    func makeNSView(context: Context) -> NSView { DragView() }
+    func updateNSView(_ nsView: NSView, context: Context) {}
+}
 
 #Preview {
     MiniPlayerView()

@@ -52,11 +52,14 @@ struct MiniLyricsView: View {
     
     private var header: some View {
         HStack {
-            Text("Lyrics")
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundColor(.primary)
+            HStack {
+                Text("Lyrics")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(.primary)
             
-            Spacer()
+                Spacer()
+            }
+            .overlay(WindowDragArea())
             
             // Close button
             Button(action: onClose) {

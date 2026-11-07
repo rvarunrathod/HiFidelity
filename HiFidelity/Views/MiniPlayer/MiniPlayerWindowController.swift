@@ -70,7 +70,7 @@ class MiniPlayerWindowController: NSWindowController, NSWindowDelegate {
         // Set initial size (140 content height + 16 padding = 156)
         let showArtwork = UserDefaults.standard.object(forKey: "miniPlayerShowArtwork") as? Bool ?? true
         let initialWidth: CGFloat = (showArtwork ? 440 : 360) + 16  // +16 for padding
-        let initialHeight: CGFloat = 140 + 16  // content height + padding
+        let initialHeight = Self.collapsedHeight
         
         window.setContentSize(NSSize(width: initialWidth, height: initialHeight))
         
@@ -79,9 +79,11 @@ class MiniPlayerWindowController: NSWindowController, NSWindowDelegate {
         window.maxSize = NSSize(width: initialWidth, height: initialHeight)
         
         // Position window
-        if let savedOrigin = Self.loadWindowPosition() {
-            // Restore saved position
-            window.setFrameOrigin(savedOrigin)
+        // Restore saved position, pulled fully onto its screen; ignore it if no screen shows it
+        // anymore (e.g. external display removed)
+        if let savedOrigin = Self.loadWindowPosition(),
+           let screen = NSScreen.screens.first(where: { $0.visibleFrame.intersects(NSRect(origin: savedOrigin, size: window.frame.size)) }) {
+            window.setFrame(Self.clamp(NSRect(origin: savedOrigin, size: window.frame.size), to: screen.visibleFrame), display: false)
         } else if let screen = NSScreen.main {
             // Default position in bottom right corner with padding
             let screenRect = screen.visibleFrame
@@ -115,12 +117,25 @@ class MiniPlayerWindowController: NSWindowController, NSWindowDelegate {
             name: NSWindow.willCloseNotification,
             object: window
         )
+
+        // Keep the window on screen when displays are added, removed or rearranged
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(screenParametersDidChange),
+            name: NSApplication.didChangeScreenParametersNotification,
+            object: nil
+        )
     }
-    
+
+    @objc private func screenParametersDidChange(_ notification: Notification) {
+        guard let window = window, let screen = window.screen ?? NSScreen.main else { return }
+        window.setFrame(Self.clamp(window.frame, to: screen.visibleFrame), display: true)
+    }
+
     @objc internal func windowWillClose(_ notification: Notification) {
         // Save window position before closing
         if let window = window {
-            Self.saveWindowPosition(window.frame.origin)
+            Self.saveWindowPosition(collapsedOrigin(of: window))
         }
         // Save closed state
         UserDefaults.standard.set(false, forKey: "miniPlayerWasOpen")
@@ -132,12 +147,32 @@ class MiniPlayerWindowController: NSWindowController, NSWindowDelegate {
     func windowDidMove(_ notification: Notification) {
         // Save window position when it moves
         if let window = window {
-            Self.saveWindowPosition(window.frame.origin)
+            Self.saveWindowPosition(collapsedOrigin(of: window))
         }
     }
-    
+
     // MARK: - Position Persistence
-    
+
+    static let collapsedHeight: CGFloat = 140 + 16  // content height + padding
+
+    /// Whether the open Queue/Lyrics panel grew upward (bottom edge fixed) instead of downward
+    var expandedUpward = false
+
+    /// Move `frame` so it lies fully inside `visible`
+    static func clamp(_ frame: NSRect, to visible: NSRect) -> NSRect {
+        var frame = frame
+        frame.origin.x = max(visible.minX, min(frame.minX, visible.maxX - frame.width))
+        frame.origin.y = max(visible.minY, min(frame.minY, visible.maxY - frame.height))
+        return frame
+    }
+
+    /// Origin the window has when the Queue/Lyrics panel is closed, so reopening doesn't land 300pt off
+    private func collapsedOrigin(of window: NSWindow) -> NSPoint {
+        let extra = window.frame.height - Self.collapsedHeight
+        guard extra > 0, !expandedUpward else { return window.frame.origin }
+        return NSPoint(x: window.frame.minX, y: window.frame.minY + extra)
+    }
+
     private static func saveWindowPosition(_ origin: NSPoint) {
         UserDefaults.standard.set(origin.x, forKey: "miniPlayerWindowX")
         UserDefaults.standard.set(origin.y, forKey: "miniPlayerWindowY")
@@ -188,6 +223,35 @@ class MiniPlayerWindowController: NSWindowController, NSWindowDelegate {
         }
     }
     
+    /// Main window hidden when entering the mini player.
+    /// The "MainPlayerWindow" identifier alone is unreliable: after SwiftUI recreates the main window
+    /// it ends up on a hidden helper window, and ordering that front blocks Dock reopen.
+    private static weak var hiddenMainWindow: NSWindow?
+
+    /// Hide the main window and show the mini player
+    static func showHidingMainWindow() {
+        if let mainWindow = NSApp.mainWindow {
+            hiddenMainWindow = mainWindow
+            mainWindow.orderOut(nil)
+        }
+        show()
+    }
+
+    /// Close the mini player and bring the main window back
+    static func closeAndShowMainWindow() {
+        hide()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            let mainWindowId = NSUserInterfaceItemIdentifier("MainPlayerWindow")
+            let mainWindow = hiddenMainWindow
+                ?? NSApp.windows.first(where: { $0.identifier == mainWindowId && $0.canBecomeMain })
+            hiddenMainWindow = nil
+            if let mainWindow {
+                mainWindow.makeKeyAndOrderFront(nil)
+                NSApp.activate(ignoringOtherApps: true)
+            }
+        }
+    }
+
     /// Hide the mini player
     static func hide() {
         shared?.close()

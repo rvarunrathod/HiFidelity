@@ -42,6 +42,7 @@ struct MiniPlayerView: View {
             }
         }
         .frame(width: showArtwork ? 440 : 360)
+        .background(WindowDragArea())
         .background(
             Group {
                 if isTransparent {
@@ -82,12 +83,26 @@ struct MiniPlayerView: View {
         var frame = window.frame
         let oldHeight = frame.size.height
         let heightDiff = targetHeight - oldHeight
-        
-        // Keep the top position fixed, grow/shrink from bottom
+        let visibleFrame = (window.screen ?? NSScreen.main)?.visibleFrame
+        let controller = MiniPlayerWindowController.shared
+
+        // Grow downward (top fixed); grow upward (bottom fixed) when there is no room below.
+        // Shrink back the same way it grew.
+        if heightDiff > 0, let visibleFrame {
+            controller?.expandedUpward = frame.minY - heightDiff < visibleFrame.minY
+        }
+        if !(controller?.expandedUpward ?? false) {
+            frame.origin.y -= heightDiff
+        }
         frame.size.height = targetHeight
         frame.size.width = targetWidth
-        frame.origin.y -= heightDiff
-        
+        if let visibleFrame {
+            frame = MiniPlayerWindowController.clamp(frame, to: visibleFrame)
+        }
+        if !expanded {
+            controller?.expandedUpward = false
+        }
+
         // Set frame without animation to prevent wobble
         window.setFrame(frame, display: true, animate: false)
         window.invalidateShadow()
@@ -151,50 +166,45 @@ struct MiniPlayerView: View {
     
     private func trackInfoHeader(track: Track) -> some View {
         HStack(spacing: 12) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(track.title)
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundColor(.primary)
-                    .lineLimit(1)
-                
-                HStack(spacing: 4) {
-                    Text(track.artist)
-                        .font(.system(size: 11))
-                        .foregroundColor(.secondary)
+            HStack(spacing: 12) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(track.title)
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(.primary)
                         .lineLimit(1)
-                    
-                    if !track.album.isEmpty {
-                        Text("•")
-                            .font(.system(size: 11))
-                            .foregroundColor(.secondary.opacity(0.5))
-                        
-                        Text(track.album)
+                
+                    HStack(spacing: 4) {
+                        Text(track.artist)
                             .font(.system(size: 11))
                             .foregroundColor(.secondary)
                             .lineLimit(1)
+                    
+                        if !track.album.isEmpty {
+                            Text("•")
+                                .font(.system(size: 11))
+                                .foregroundColor(.secondary.opacity(0.5))
+                        
+                            Text(track.album)
+                                .font(.system(size: 11))
+                                .foregroundColor(.secondary)
+                                .lineLimit(1)
+                        }
                     }
                 }
+
+                Spacer()
+
+                // Time display
+                Text("-\(formatRemainingTime())")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundColor(.secondary)
+                    .monospacedDigit()
             }
-            
-            Spacer()
-            
-            // Time display
-            Text("-\(formatRemainingTime())")
-                .font(.system(size: 11, weight: .medium))
-                .foregroundColor(.secondary)
-                .monospacedDigit()
+            .overlay(WindowDragArea())
             
             // Close button
             Button(action: {
-                MiniPlayerWindowController.hide()
-                // Show main window using its identifier
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                    let mainWindowId = NSUserInterfaceItemIdentifier("MainPlayerWindow")
-                    if let mainWindow = NSApp.windows.first(where: { $0.identifier == mainWindowId }) {
-                        mainWindow.makeKeyAndOrderFront(nil)
-                        NSApp.activate(ignoringOtherApps: true)
-                    }
-                }
+                MiniPlayerWindowController.closeAndShowMainWindow()
             }) {
                 Image(systemName: "xmark.circle.fill")
                     .font(.system(size: 16))
@@ -219,7 +229,11 @@ struct MiniPlayerView: View {
             if isHoveringArtwork {
                 Color.black.opacity(0.5)
                     .transition(.opacity)
-                
+            }
+            
+            WindowDragArea()
+            
+            if isHoveringArtwork {
                 Button(action: {
                     playback.togglePlayPause()
                 }) {
@@ -508,23 +522,18 @@ struct MiniPlayerView: View {
         VStack(spacing: 0) {
             // Header with close button
             HStack {
-                Text("No Track Playing")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundColor(.primary)
-                
-                Spacer()
+                HStack {
+                    Text("No Track Playing")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(.primary)
+                    
+                    Spacer()
+                }
+                .overlay(WindowDragArea())
                 
                 // Close button
                 Button(action: {
-                    MiniPlayerWindowController.hide()
-                    // Show main window using its identifier
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                        let mainWindowId = NSUserInterfaceItemIdentifier("MainPlayerWindow")
-                        if let mainWindow = NSApp.windows.first(where: { $0.identifier == mainWindowId }) {
-                            mainWindow.makeKeyAndOrderFront(nil)
-                            NSApp.activate(ignoringOtherApps: true)
-                        }
-                    }
+                    MiniPlayerWindowController.closeAndShowMainWindow()
                 }) {
                     Image(systemName: "xmark.circle.fill")
                         .font(.system(size: 16))
@@ -553,6 +562,7 @@ struct MiniPlayerView: View {
                             .foregroundColor(.secondary.opacity(0.3))
                     }
                     .frame(width: 140, height: 140)
+                    .overlay(WindowDragArea())
                     
                     Divider()
                 }
@@ -568,6 +578,7 @@ struct MiniPlayerView: View {
                     Spacer()
                 }
                 .frame(maxWidth: .infinity)
+                .overlay(WindowDragArea())
             }
             .frame(height: 140)
         }
@@ -698,6 +709,18 @@ struct VolumePopoverView: View {
 }
 
 // MARK: - Preview
+
+/// Transparent area that drags the window. isMovableByWindowBackground does not cover SwiftUI text.
+struct WindowDragArea: NSViewRepresentable {
+    final class DragView: NSView {
+        // First click drags even when the mini player is not the key window
+        override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+        override func mouseDown(with event: NSEvent) { window?.performDrag(with: event) }
+    }
+
+    func makeNSView(context: Context) -> NSView { DragView() }
+    func updateNSView(_ nsView: NSView, context: Context) {}
+}
 
 #Preview {
     MiniPlayerView()

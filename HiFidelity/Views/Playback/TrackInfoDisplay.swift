@@ -39,12 +39,7 @@ struct TrackInfoDisplay: View {
                 
                 // Mini Player button on bottom
                 Button(action: {
-                    // Hide the main window
-                    if let mainWindow = NSApp.mainWindow {
-                        mainWindow.orderOut(nil)
-                    }
-                    // Show mini player
-                    MiniPlayerWindowController.show()
+                    MiniPlayerWindowController.showHidingMainWindow()
                 }) {
                     Image(systemName: "pip.enter")
                         .font(.system(size: 16))

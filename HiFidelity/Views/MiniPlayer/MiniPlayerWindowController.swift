@@ -188,6 +188,35 @@ class MiniPlayerWindowController: NSWindowController, NSWindowDelegate {
         }
     }
     
+    /// Main window hidden when entering the mini player.
+    /// The "MainPlayerWindow" identifier alone is unreliable: after SwiftUI recreates the main window
+    /// it ends up on a hidden helper window, and ordering that front blocks Dock reopen.
+    private static weak var hiddenMainWindow: NSWindow?
+
+    /// Hide the main window and show the mini player
+    static func showHidingMainWindow() {
+        if let mainWindow = NSApp.mainWindow {
+            hiddenMainWindow = mainWindow
+            mainWindow.orderOut(nil)
+        }
+        show()
+    }
+
+    /// Close the mini player and bring the main window back
+    static func closeAndShowMainWindow() {
+        hide()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            let mainWindowId = NSUserInterfaceItemIdentifier("MainPlayerWindow")
+            let mainWindow = hiddenMainWindow
+                ?? NSApp.windows.first(where: { $0.identifier == mainWindowId && $0.canBecomeMain })
+            hiddenMainWindow = nil
+            if let mainWindow {
+                mainWindow.makeKeyAndOrderFront(nil)
+                NSApp.activate(ignoringOtherApps: true)
+            }
+        }
+    }
+
     /// Hide the mini player
     static func hide() {
         shared?.close()

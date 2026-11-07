@@ -186,15 +186,7 @@ struct MiniPlayerView: View {
             
             // Close button
             Button(action: {
-                MiniPlayerWindowController.hide()
-                // Show main window using its identifier
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                    let mainWindowId = NSUserInterfaceItemIdentifier("MainPlayerWindow")
-                    if let mainWindow = NSApp.windows.first(where: { $0.identifier == mainWindowId }) {
-                        mainWindow.makeKeyAndOrderFront(nil)
-                        NSApp.activate(ignoringOtherApps: true)
-                    }
-                }
+                MiniPlayerWindowController.closeAndShowMainWindow()
             }) {
                 Image(systemName: "xmark.circle.fill")
                     .font(.system(size: 16))
@@ -516,15 +508,7 @@ struct MiniPlayerView: View {
                 
                 // Close button
                 Button(action: {
-                    MiniPlayerWindowController.hide()
-                    // Show main window using its identifier
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                        let mainWindowId = NSUserInterfaceItemIdentifier("MainPlayerWindow")
-                        if let mainWindow = NSApp.windows.first(where: { $0.identifier == mainWindowId }) {
-                            mainWindow.makeKeyAndOrderFront(nil)
-                            NSApp.activate(ignoringOtherApps: true)
-                        }
-                    }
+                    MiniPlayerWindowController.closeAndShowMainWindow()
                 }) {
                     Image(systemName: "xmark.circle.fill")
                         .font(.system(size: 16))

@@ -82,12 +82,26 @@ struct MiniPlayerView: View {
         var frame = window.frame
         let oldHeight = frame.size.height
         let heightDiff = targetHeight - oldHeight
-        
-        // Keep the top position fixed, grow/shrink from bottom
+        let visibleFrame = (window.screen ?? NSScreen.main)?.visibleFrame
+        let controller = MiniPlayerWindowController.shared
+
+        // Grow downward (top fixed); grow upward (bottom fixed) when there is no room below.
+        // Shrink back the same way it grew.
+        if heightDiff > 0, let visibleFrame {
+            controller?.expandedUpward = frame.minY - heightDiff < visibleFrame.minY
+        }
+        if !(controller?.expandedUpward ?? false) {
+            frame.origin.y -= heightDiff
+        }
         frame.size.height = targetHeight
         frame.size.width = targetWidth
-        frame.origin.y -= heightDiff
-        
+        if let visibleFrame {
+            frame = MiniPlayerWindowController.clamp(frame, to: visibleFrame)
+        }
+        if !expanded {
+            controller?.expandedUpward = false
+        }
+
         // Set frame without animation to prevent wobble
         window.setFrame(frame, display: true, animate: false)
         window.invalidateShadow()
